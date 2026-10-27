@@ -8,6 +8,7 @@ import com.tan.presentation.components.PlaceholderScreen
 import com.tan.presentation.history.HistoryScreen
 import com.tan.presentation.home.HomeScreen
 import com.tan.presentation.models.ModelsScreen
+import com.tan.presentation.record.RecordScreen
 
 @Composable
 fun TanNavHost() {
@@ -25,7 +26,12 @@ fun TanNavHost() {
                 onSettings = { navController.navigate(Routes.SETTINGS) }
             )
         }
-        composable(Routes.RECORD) { PlaceholderScreen("Grabar audio", back) }
+        composable(Routes.RECORD) {
+            RecordScreen(
+                onBack = { navController.popBackStack() },
+                onTranscribe = { navController.navigate(Routes.TRANSCRIBING) },
+            )
+        }
         composable(Routes.IMPORT) { PlaceholderScreen("Cargar archivo", back) }
         composable(Routes.TRANSCRIBING) { PlaceholderScreen("Transcribiendo", back) }
         composable(Routes.HISTORY) { HistoryScreen(onBack = back) }
