@@ -7,6 +7,7 @@ import androidx.navigation.compose.rememberNavController
 import com.tan.presentation.components.PlaceholderScreen
 import com.tan.presentation.history.HistoryScreen
 import com.tan.presentation.home.HomeScreen
+import com.tan.presentation.models.ModelsScreen
 
 @Composable
 fun TanNavHost() {
@@ -15,7 +16,7 @@ fun TanNavHost() {
 
     NavHost(navController = navController, startDestination = Routes.HOME) {
         composable(Routes.WELCOME) { PlaceholderScreen("Bienvenida", back) }
-        composable(Routes.MODELS) { PlaceholderScreen("Seleccionar modelo", back) }
+        composable(Routes.MODELS) { ModelsScreen(onBack = back) }
         composable(Routes.HOME) {
             HomeScreen(
                 onRecord = { navController.navigate(Routes.RECORD) },
