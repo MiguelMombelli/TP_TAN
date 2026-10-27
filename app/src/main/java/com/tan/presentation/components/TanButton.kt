@@ -1,7 +1,5 @@
 package com.tan.presentation.components
 
-package com.tan.presentation.components
-
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
