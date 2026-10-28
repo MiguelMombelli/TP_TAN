@@ -7,6 +7,7 @@ import androidx.navigation.compose.rememberNavController
 import com.tan.presentation.components.PlaceholderScreen
 import com.tan.presentation.history.HistoryScreen
 import com.tan.presentation.home.HomeScreen
+import com.tan.presentation.loadfile.LoadFileScreen
 import com.tan.presentation.models.ModelsScreen
 import com.tan.presentation.record.RecordScreen
 import com.tan.presentation.transcribing.TranscribingScreen
@@ -33,7 +34,12 @@ fun TanNavHost() {
                 onTranscribe = { navController.navigate(Routes.TRANSCRIBING) },
             )
         }
-        composable(Routes.IMPORT) { PlaceholderScreen("Cargar archivo", back) }
+        composable(Routes.IMPORT) {
+            LoadFileScreen(
+                onBack = back,
+                onContinue = { navController.navigate(Routes.TRANSCRIBING) },
+            )
+        }
         composable(Routes.TRANSCRIBING) {
             TranscribingScreen(
                 onCancel = back,
