@@ -1,5 +1,5 @@
 package com.tan.presentation.components
-
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -13,7 +13,7 @@ fun TanTopBar(title: String, onBack: (() -> Unit)? = null) {
         navigationIcon = {
             if (onBack != null) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = Color.White)
                 }
             }
         },
@@ -24,3 +24,4 @@ fun TanTopBar(title: String, onBack: (() -> Unit)? = null) {
         )
     )
 }
+
