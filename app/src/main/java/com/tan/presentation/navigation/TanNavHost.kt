@@ -9,6 +9,7 @@ import com.tan.presentation.history.HistoryScreen
 import com.tan.presentation.home.HomeScreen
 import com.tan.presentation.models.ModelsScreen
 import com.tan.presentation.record.RecordScreen
+import com.tan.presentation.transcribing.TranscribingScreen
 
 @Composable
 fun TanNavHost() {
@@ -33,7 +34,12 @@ fun TanNavHost() {
             )
         }
         composable(Routes.IMPORT) { PlaceholderScreen("Cargar archivo", back) }
-        composable(Routes.TRANSCRIBING) { PlaceholderScreen("Transcribiendo", back) }
+        composable(Routes.TRANSCRIBING) {
+            TranscribingScreen(
+                onCancel = back,
+                onErrorAccepted = back,
+            )
+        }
         composable(Routes.HISTORY) { HistoryScreen(onBack = back) }
         composable(Routes.DETAIL) { PlaceholderScreen("Detalle", back) }
         composable(Routes.SETTINGS) { PlaceholderScreen("Configuración", back) }
