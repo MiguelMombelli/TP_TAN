@@ -5,6 +5,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.tan.presentation.components.PlaceholderScreen
+import com.tan.presentation.history.HistoryScreen
 import com.tan.presentation.home.HomeScreen
 
 @Composable
@@ -26,7 +27,7 @@ fun TanNavHost() {
         composable(Routes.RECORD) { PlaceholderScreen("Grabar audio", back) }
         composable(Routes.IMPORT) { PlaceholderScreen("Cargar archivo", back) }
         composable(Routes.TRANSCRIBING) { PlaceholderScreen("Transcribiendo", back) }
-        composable(Routes.HISTORY) { PlaceholderScreen("Historial", back) }
+        composable(Routes.HISTORY) { HistoryScreen(onBack = back) }
         composable(Routes.DETAIL) { PlaceholderScreen("Detalle", back) }
         composable(Routes.SETTINGS) { PlaceholderScreen("Configuración", back) }
     }
