@@ -14,6 +14,20 @@ class HistoryViewModel @Inject constructor() : ViewModel() {
 }
 
 fun fakeItems() = listOf(
-    HistoryItemUi(1, "Grabación 17/04/2026 21:15", "17/04/2026", "En la clase de hoy se compartió la receta de los tequeños..."),
-    HistoryItemUi(2, "Entrevista a un paciente", "09/09/2026", "El entrevistado comenta que hace tres semanas solo come flips...")
+    HistoryItemUi(
+        id = 1,
+        title = "Grabación 17/04/2026 21:15",
+        date = "17/04/2026",
+        sourceLabel = "Grabación",
+        model = "tiny",
+        preview = "Receta para brownies. Primero derretimos 200 gr de manteca con 300 gr ..."
+    ),
+    HistoryItemUi(
+        id = 2,
+        title = "Entrevista a un paciente",
+        date = "09/09/2026",
+        sourceLabel = "Archivo",
+        model = "base",
+        preview = "El entrevistado comenta que hace tres semanas solo come flips..."
+    )
 )

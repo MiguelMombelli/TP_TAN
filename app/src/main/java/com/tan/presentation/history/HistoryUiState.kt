@@ -11,5 +11,9 @@ data class HistoryItemUi(
     val id: Long,
     val title: String,
     val date: String,
+    /** "Archivo" o "Grabación". */
+    val sourceLabel: String,
+    /** Modelo usado, por ejemplo "tiny". */
+    val model: String,
     val preview: String
 )

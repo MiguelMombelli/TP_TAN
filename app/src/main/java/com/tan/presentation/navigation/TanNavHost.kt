@@ -73,6 +73,11 @@ fun TanNavHost() {
         ) {
             DetailScreen(onBack = back)
         }
-        composable(Routes.SETTINGS) { PlaceholderScreen("Configuración", back) }
+        composable(Routes.SETTINGS) {
+            SettingsScreen(
+                onBack = back,
+                onManageModels = { navController.navigate(Routes.MODELS) },
+            )
+        }
     }
 }
