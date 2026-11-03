@@ -15,7 +15,7 @@ import com.tan.presentation.models.ModelsScreen
 import com.tan.presentation.record.RecordScreen
 import com.tan.presentation.result.ResultScreen
 import com.tan.presentation.transcribing.TranscribingScreen
-
+import com.tan.presentation.settings.SettingsScreen
 @Composable
 fun TanNavHost() {
     val navController = rememberNavController()
