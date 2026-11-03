@@ -12,7 +12,7 @@ import com.tan.presentation.models.ModelsScreen
 import com.tan.presentation.record.RecordScreen
 import com.tan.presentation.result.ResultScreen
 import com.tan.presentation.transcribing.TranscribingScreen
-
+import com.tan.presentation.settings.SettingsScreen
 @Composable
 fun TanNavHost() {
     val navController = rememberNavController()
@@ -60,6 +60,11 @@ fun TanNavHost() {
         }
         composable(Routes.HISTORY) { HistoryScreen(onBack = back) }
         composable(Routes.DETAIL) { PlaceholderScreen("Detalle", back) }
-        composable(Routes.SETTINGS) { PlaceholderScreen("Configuración", back) }
+        composable(Routes.SETTINGS) {
+            SettingsScreen(
+                onBack = back,
+                onManageModels = { navController.navigate(Routes.MODELS) },
+            )
+        }
     }
 }
