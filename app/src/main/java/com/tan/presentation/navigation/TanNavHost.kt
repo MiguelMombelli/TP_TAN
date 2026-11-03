@@ -10,6 +10,7 @@ import com.tan.presentation.home.HomeScreen
 import com.tan.presentation.loadfile.LoadFileScreen
 import com.tan.presentation.models.ModelsScreen
 import com.tan.presentation.record.RecordScreen
+import com.tan.presentation.result.ResultScreen
 import com.tan.presentation.transcribing.TranscribingScreen
 
 @Composable
@@ -44,6 +45,17 @@ fun TanNavHost() {
             TranscribingScreen(
                 onCancel = back,
                 onErrorAccepted = back,
+                onFinished = {
+                    navController.navigate(Routes.RESULT) { popUpTo(Routes.HOME) }
+                },
+            )
+        }
+        composable(Routes.RESULT) {
+            ResultScreen(
+                onBack = { navController.popBackStack(Routes.HOME, inclusive = false) },
+                onRecordAgain = {
+                    navController.navigate(Routes.RECORD) { popUpTo(Routes.HOME) }
+                },
             )
         }
         composable(Routes.HISTORY) { HistoryScreen(onBack = back) }

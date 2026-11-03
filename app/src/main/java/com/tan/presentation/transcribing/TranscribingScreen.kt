@@ -21,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -45,9 +46,17 @@ import com.tan.ui.theme.TanTurquesa
 fun TranscribingScreen(
     onCancel: () -> Unit,
     onErrorAccepted: () -> Unit,
+    onFinished: () -> Unit,
     viewModel: TranscribingViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+
+    // Al llegar al 100% se pasa a la pantalla de Resultado.
+    LaunchedEffect(state) {
+        val current = state
+        if (current is TranscribingUiState.InProgress && current.progress >= 1f) onFinished()
+    }
+
     TranscribingContent(
         state = state,
         onCancel = {

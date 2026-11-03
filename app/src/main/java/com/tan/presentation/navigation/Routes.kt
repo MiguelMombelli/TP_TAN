@@ -7,6 +7,7 @@ object Routes {
     const val RECORD = "record"
     const val IMPORT = "import"
     const val TRANSCRIBING = "transcribing"
+    const val RESULT = "result"
     const val HISTORY = "history"
     const val DETAIL = "detail"
     const val SETTINGS = "settings"
