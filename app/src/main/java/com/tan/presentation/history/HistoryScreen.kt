@@ -5,6 +5,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -22,11 +25,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.tan.presentation.components.TanChip
 import com.tan.presentation.components.TanTopBar
 import com.tan.ui.theme.TANTheme
+import com.tan.ui.theme.TanNaranja
+import com.tan.ui.theme.TanTexto
+import com.tan.ui.theme.TanTurquesa
 
 @Composable
 fun HistoryScreen(
@@ -37,7 +46,6 @@ fun HistoryScreen(
     val state by viewModel.state.collectAsState()
     HistoryContent(state, onBack, onItemClick)
 }
-
 
 @Composable
 fun HistoryContent(
@@ -71,10 +79,39 @@ fun HistoryContent(
                                 modifier = Modifier.fillMaxWidth().clickable { onItemClick(item.id) },
                                 colors = CardDefaults.cardColors(containerColor = Color.White)
                             ) {
-                                Column(Modifier.padding(16.dp)) {
-                                    Text(item.title, style = MaterialTheme.typography.titleMedium)
-                                    Text(item.date, style = MaterialTheme.typography.bodySmall)
-                                    Text(item.preview, style = MaterialTheme.typography.bodyMedium)
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.Top) {
+                                        Text(
+                                            text = item.title,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(
+                                            text = item.date,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = TanTexto
+                                        )
+                                    }
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        TanChip(
+                                            text = item.sourceLabel,
+                                            color = if (item.sourceLabel == "Grabación") TanNaranja else TanTurquesa
+                                        )
+                                        TanChip(text = item.model, color = TanTexto)
+                                    }
+                                    Text(
+                                        text = item.preview,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        maxLines = 3,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
                                 }
                             }
                         }
@@ -83,7 +120,6 @@ fun HistoryContent(
         }
     }
 }
-
 
 @Preview(showBackground = true)
 @Composable
