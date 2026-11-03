@@ -1,10 +1,13 @@
 package com.tan.presentation.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.tan.presentation.components.PlaceholderScreen
+import com.tan.presentation.detail.DetailScreen
 import com.tan.presentation.history.HistoryScreen
 import com.tan.presentation.home.HomeScreen
 import com.tan.presentation.loadfile.LoadFileScreen
@@ -58,13 +61,18 @@ fun TanNavHost() {
                 },
             )
         }
-        composable(Routes.HISTORY) { HistoryScreen(onBack = back) }
-        composable(Routes.DETAIL) { PlaceholderScreen("Detalle", back) }
-        composable(Routes.SETTINGS) {
-            SettingsScreen(
+        composable(Routes.HISTORY) {
+            HistoryScreen(
                 onBack = back,
-                onManageModels = { navController.navigate(Routes.MODELS) },
+                onItemClick = { id -> navController.navigate(Routes.detail(id)) },
             )
         }
+        composable(
+            route = Routes.DETAIL,
+            arguments = listOf(navArgument(Routes.ARG_ID) { type = NavType.LongType }),
+        ) {
+            DetailScreen(onBack = back)
+        }
+        composable(Routes.SETTINGS) { PlaceholderScreen("Configuración", back) }
     }
 }

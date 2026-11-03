@@ -1,5 +1,6 @@
 package com.tan.presentation.history
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,14 +31,20 @@ import com.tan.ui.theme.TANTheme
 @Composable
 fun HistoryScreen(
     onBack: () -> Unit,
+    onItemClick: (Long) -> Unit,
     viewModel: HistoryViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
-    HistoryContent(state, onBack)
+    HistoryContent(state, onBack, onItemClick)
 }
 
+
 @Composable
-fun HistoryContent(state: HistoryUiState, onBack: () -> Unit) {
+fun HistoryContent(
+    state: HistoryUiState,
+    onBack: () -> Unit,
+    onItemClick: (Long) -> Unit
+) {
     Scaffold(topBar = { TanTopBar("Historial", onBack) }) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             when (state) {
@@ -61,7 +68,7 @@ fun HistoryContent(state: HistoryUiState, onBack: () -> Unit) {
                     ) {
                         items(state.items) { item ->
                             Card(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier.fillMaxWidth().clickable { onItemClick(item.id) },
                                 colors = CardDefaults.cardColors(containerColor = Color.White)
                             ) {
                                 Column(Modifier.padding(16.dp)) {
@@ -77,26 +84,27 @@ fun HistoryContent(state: HistoryUiState, onBack: () -> Unit) {
     }
 }
 
+
 @Preview(showBackground = true)
 @Composable
 private fun HistoryLoadingPreview() {
-    TANTheme { HistoryContent(HistoryUiState.Loading) {} }
+    TANTheme { HistoryContent(HistoryUiState.Loading, {}, {}) }
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun HistoryEmptyPreview() {
-    TANTheme { HistoryContent(HistoryUiState.Empty) {} }
+    TANTheme { HistoryContent(HistoryUiState.Empty, {}, {}) }
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun HistoryContentPreview() {
-    TANTheme { HistoryContent(HistoryUiState.Content(fakeItems())) {} }
+    TANTheme { HistoryContent(HistoryUiState.Content(fakeItems()), {}, {}) }
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun HistoryErrorPreview() {
-    TANTheme { HistoryContent(HistoryUiState.Error("No se pudo cargar")) {} }
+    TANTheme { HistoryContent(HistoryUiState.Error("No se pudo cargar"), {}, {}) }
 }

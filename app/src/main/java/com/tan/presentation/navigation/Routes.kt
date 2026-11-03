@@ -9,6 +9,8 @@ object Routes {
     const val TRANSCRIBING = "transcribing"
     const val RESULT = "result"
     const val HISTORY = "history"
-    const val DETAIL = "detail"
+    const val ARG_ID = "id"
+    const val DETAIL = "detail/{$ARG_ID}"
+    fun detail(id: Long) = "detail/$id"
     const val SETTINGS = "settings"
 }
