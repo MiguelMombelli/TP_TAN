@@ -4,10 +4,17 @@ import com.tan.domain.model.Segment
 
 /**
  * Exportación de una transcripción a texto plano (.txt) y subtítulos (.srt).
+ * Son funciones puras: no tocan archivos ni Android, así que se testean en la JVM.
  */
 object TranscriptExporter {
 
-    /** Une el texto de los segmentos, uno por línea.*/
+    /** Genera el contenido en el formato pedido. */
+    fun export(segments: List<Segment>, format: ExportFormat): String = when (format) {
+        ExportFormat.TXT -> toTxt(segments)
+        ExportFormat.SRT -> toSrt(segments)
+    }
+
+    /** Une el texto de los segmentos, uno por línea. Ignora segmentos vacíos. */
     fun toTxt(segments: List<Segment>): String =
         segments
             .map { it.text.trim() }
@@ -16,7 +23,8 @@ object TranscriptExporter {
 
     /**
      * Genera un .srt válido. Los segmentos vacíos se descartan y la numeración
-     * se hace sobre los que quedan
+     * se hace sobre los que quedan (empieza en 1, sin saltos).
+     * Si un segmento termina antes de empezar, se ajusta el fin al inicio.
      */
     fun toSrt(segments: List<Segment>): String =
         segments
