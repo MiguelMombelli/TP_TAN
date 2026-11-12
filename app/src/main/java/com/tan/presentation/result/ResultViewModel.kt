@@ -1,24 +1,42 @@
 package com.tan.presentation.result
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.tan.domain.model.Segment
+import com.tan.domain.repository.TranscriptionRepository
+import com.tan.presentation.format.toResultContent
+import com.tan.presentation.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 @HiltViewModel
-class ResultViewModel @Inject constructor() : ViewModel() {
-    // Datos falsos. Más adelante lee la transcripción real desde TranscriptionRepository.
-    private val _state = MutableStateFlow<ResultUiState>(
-        ResultUiState.Content(
-            title = "Grabación 17/04/2026 21:15",
-            segments = fakeSegments()
-        )
-    )
+class ResultViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
+    repository: TranscriptionRepository
+) : ViewModel() {
+
+    private val id: Long = savedStateHandle[Routes.ARG_ID] ?: -1L
+
+    private val _state = MutableStateFlow<ResultUiState>(ResultUiState.Loading)
     val state: StateFlow<ResultUiState> = _state.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            _state.value = try {
+                repository.getById(id)?.toResultContent()
+                    ?: ResultUiState.Error("No se encontró la transcripción")
+            } catch (e: Exception) {
+                ResultUiState.Error("No se pudo cargar la transcripción")
+            }
+        }
+    }
 }
+
 
 fun fakeSegments(): List<Segment> = listOf(
     Segment(0, 3_200, "Receta para brownies"),

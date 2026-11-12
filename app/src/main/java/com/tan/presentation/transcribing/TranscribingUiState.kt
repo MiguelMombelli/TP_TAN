@@ -10,4 +10,7 @@ sealed interface TranscribingUiState {
         val progress: Float,
         val minutesLeft: Int,
     ) : TranscribingUiState
+
+    /** La transcripción terminó y quedó guardada con este id. */
+    data class Done(val transcriptionId: Long) : TranscribingUiState
 }

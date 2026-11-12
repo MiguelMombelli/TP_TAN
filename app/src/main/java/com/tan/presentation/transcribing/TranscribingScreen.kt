@@ -46,15 +46,15 @@ import com.tan.ui.theme.TanTurquesa
 fun TranscribingScreen(
     onCancel: () -> Unit,
     onErrorAccepted: () -> Unit,
-    onFinished: () -> Unit,
+    onFinished: (Long) -> Unit,
     viewModel: TranscribingViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
 
-    // Al llegar al 100% se pasa a la pantalla de Resultado.
+    // Cuando la transcripción termina y se guarda, se pasa a la pantalla de Resultado.
     LaunchedEffect(state) {
         val current = state
-        if (current is TranscribingUiState.InProgress && current.progress >= 1f) onFinished()
+        if (current is TranscribingUiState.Done) onFinished(current.transcriptionId)
     }
 
     TranscribingContent(
@@ -83,6 +83,10 @@ fun TranscribingContent(
         is TranscribingUiState.Error -> {
             progress = state.progress
             minutesLeft = state.minutesLeft
+        }
+        is TranscribingUiState.Done -> {
+            progress = 1f
+            minutesLeft = 0
         }
     }
 

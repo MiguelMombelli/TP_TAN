@@ -60,10 +60,7 @@ fun DetailScreen(
         onBack = onBack,
         onShareTxt = { share(ExportFormat.TXT) },
         onShareSrt = { share(ExportFormat.SRT) },
-        onDelete = {
-            viewModel.onDelete()
-            onBack()
-        }
+        onDelete = { viewModel.onDelete(onDone = onBack) }
     )
 }
 

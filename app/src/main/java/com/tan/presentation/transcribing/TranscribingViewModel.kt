@@ -2,17 +2,24 @@ package com.tan.presentation.transcribing
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tan.domain.model.Transcription
+import com.tan.domain.model.TranscriptionSource
+import com.tan.domain.repository.TranscriptionRepository
+import com.tan.presentation.format.defaultTitle
+import com.tan.presentation.result.fakeSegments
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @HiltViewModel
-class TranscribingViewModel @Inject constructor() : ViewModel() {
+class TranscribingViewModel @Inject constructor(
+    private val repository: TranscriptionRepository
+) : ViewModel() {
 
     private val _state = MutableStateFlow<TranscribingUiState>(
         TranscribingUiState.InProgress(progress = 0f, minutesLeft = 10)
@@ -21,7 +28,9 @@ class TranscribingViewModel @Inject constructor() : ViewModel() {
 
     private var job: Job? = null
 
-    // Progreso falso: sube de a poco hasta 100%. El real viene del motor en la Etapa 3.
+    // Transcripción SIMULADA: el progreso sube de a poco y al llegar a 100% se guarda en Room
+    // una transcripción de ejemplo. En la Etapa 8b esto se reemplaza por el motor real
+    // (progreso, segmentos y cancelación vienen de TranscriptionEngine).
     init {
         job = viewModelScope.launch {
             var p = 0f
@@ -32,6 +41,22 @@ class TranscribingViewModel @Inject constructor() : ViewModel() {
                     progress = p,
                     minutesLeft = ((1f - p) * 10).toInt() + 1,
                 )
+            }
+            _state.value = try {
+                val now = System.currentTimeMillis()
+                val id = repository.save(
+                    Transcription(
+                        title = defaultTitle(TranscriptionSource.RECORDING, now),
+                        createdAtMs = now,
+                        source = TranscriptionSource.RECORDING,
+                        model = "tiny",
+                        durationMs = 23_000,
+                        segments = fakeSegments()
+                    )
+                )
+                TranscribingUiState.Done(id)
+            } catch (e: Exception) {
+                TranscribingUiState.Error(progress = 1f, minutesLeft = 0)
             }
         }
     }
