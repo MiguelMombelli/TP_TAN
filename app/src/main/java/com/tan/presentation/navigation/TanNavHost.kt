@@ -14,8 +14,9 @@ import com.tan.presentation.loadfile.LoadFileScreen
 import com.tan.presentation.models.ModelsScreen
 import com.tan.presentation.record.RecordScreen
 import com.tan.presentation.result.ResultScreen
-import com.tan.presentation.transcribing.TranscribingScreen
 import com.tan.presentation.settings.SettingsScreen
+import com.tan.presentation.transcribing.TranscribingScreen
+
 @Composable
 fun TanNavHost() {
     val navController = rememberNavController()
@@ -48,12 +49,15 @@ fun TanNavHost() {
             TranscribingScreen(
                 onCancel = back,
                 onErrorAccepted = back,
-                onFinished = {
-                    navController.navigate(Routes.RESULT) { popUpTo(Routes.HOME) }
+                onFinished = { id ->
+                    navController.navigate(Routes.result(id)) { popUpTo(Routes.HOME) }
                 },
             )
         }
-        composable(Routes.RESULT) {
+        composable(
+            route = Routes.RESULT,
+            arguments = listOf(navArgument(Routes.ARG_ID) { type = NavType.LongType }),
+        ) {
             ResultScreen(
                 onBack = { navController.popBackStack(Routes.HOME, inclusive = false) },
                 onRecordAgain = {
