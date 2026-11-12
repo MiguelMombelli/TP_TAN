@@ -1,5 +1,8 @@
 package com.tan.presentation.detail
 
+import com.tan.domain.model.Segment
+import com.tan.export.TranscriptExporter
+
 sealed interface DetailUiState {
     data object Loading : DetailUiState
     data class Content(val detail: DetailUi) : DetailUiState
@@ -12,5 +15,8 @@ data class DetailUi(
     /** "Archivo" o "Grabación". */
     val sourceLabel: String,
     val model: String,
-    val text: String
-)
+    val segments: List<Segment>
+) {
+    /** Texto corrido que se muestra en pantalla . */
+    val text: String get() = TranscriptExporter.toTxt(segments)
+}

@@ -23,16 +23,19 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.tan.export.ExportFormat
 import com.tan.presentation.components.TanButton
 import com.tan.presentation.components.TanButtonStyle
 import com.tan.presentation.components.TanChip
 import com.tan.presentation.components.TanTopBar
 import com.tan.presentation.components.TranscriptionTextCard
+import com.tan.share.TranscriptSharer
 import com.tan.ui.theme.TANTheme
 import com.tan.ui.theme.TanNaranja
 import com.tan.ui.theme.TanRojo
@@ -42,17 +45,21 @@ import com.tan.ui.theme.TanTurquesa
 @Composable
 fun DetailScreen(
     onBack: () -> Unit,
-    // Se conectan con FileProvider y la hoja del sistema en la etapa de compartir.
-    onShareTxt: () -> Unit = {},
-    onShareSrt: () -> Unit = {},
     viewModel: DetailViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    val context = LocalContext.current
+
+    fun share(format: ExportFormat) {
+        val detail = (state as? DetailUiState.Content)?.detail ?: return
+        TranscriptSharer.share(context, detail.title, detail.segments, format)
+    }
+
     DetailContent(
         state = state,
         onBack = onBack,
-        onShareTxt = onShareTxt,
-        onShareSrt = onShareSrt,
+        onShareTxt = { share(ExportFormat.TXT) },
+        onShareSrt = { share(ExportFormat.SRT) },
         onDelete = {
             viewModel.onDelete()
             onBack()

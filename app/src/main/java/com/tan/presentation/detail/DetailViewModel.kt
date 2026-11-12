@@ -3,7 +3,8 @@ package com.tan.presentation.detail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import com.tan.presentation.navigation.Routes
-import com.tan.presentation.result.fakeResultText
+import com.tan.presentation.result.fakeSegments
+import com.tan.domain.model.Segment
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,14 +36,17 @@ fun fakeDetail(id: Long): DetailUi? = when (id) {
         date = "17/04/2026",
         sourceLabel = "Grabación",
         model = "tiny",
-        text = fakeResultText()
+        segments = fakeSegments()
     )
     2L -> DetailUi(
         title = "Entrevista a un paciente",
         date = "09/09/2026",
         sourceLabel = "Archivo",
         model = "base",
-        text = "El entrevistado comenta que hace tres semanas solo come flips y que le cuesta dormir."
+        segments = listOf(
+            Segment(0, 5_200, "El entrevistado comenta que hace tres semanas solo come flips"),
+            Segment(5_200, 9_800, "y que le cuesta dormir.")
+        )
     )
     else -> null
 }

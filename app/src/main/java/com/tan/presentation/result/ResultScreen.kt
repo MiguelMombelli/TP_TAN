@@ -17,32 +17,39 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.tan.export.ExportFormat
 import com.tan.presentation.components.TanButton
 import com.tan.presentation.components.TanButtonStyle
 import com.tan.presentation.components.TanTopBar
 import com.tan.presentation.components.TranscriptionTextCard
+import com.tan.share.TranscriptSharer
 import com.tan.ui.theme.TANTheme
 
 @Composable
 fun ResultScreen(
     onBack: () -> Unit,
     onRecordAgain: () -> Unit,
-    // Se conectan con FileProvider y la hoja del sistema en la etapa de compartir.
-    onShareTxt: () -> Unit = {},
-    onShareSrt: () -> Unit = {},
     viewModel: ResultViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    val context = LocalContext.current
+
+    fun share(format: ExportFormat) {
+        val content = state as? ResultUiState.Content ?: return
+        TranscriptSharer.share(context, content.title, content.segments, format)
+    }
+
     ResultContent(
         state = state,
         onBack = onBack,
         onRecordAgain = onRecordAgain,
-        onShareTxt = onShareTxt,
-        onShareSrt = onShareSrt
+        onShareTxt = { share(ExportFormat.TXT) },
+        onShareSrt = { share(ExportFormat.SRT) }
     )
 }
 
@@ -113,7 +120,7 @@ private fun ResultLoadingPreview() {
 private fun ResultContentPreview() {
     TANTheme {
         ResultContent(
-            ResultUiState.Content("Grabación 17/04/2026 21:15", fakeResultText()),
+            ResultUiState.Content("Grabación 17/04/2026 21:15", fakeSegments()),
             {}, {}, {}, {}
         )
     }
