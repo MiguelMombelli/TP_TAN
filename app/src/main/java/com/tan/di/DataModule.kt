@@ -2,9 +2,11 @@ package com.tan.di
 
 import android.content.Context
 import androidx.room.Room
+import com.tan.data.engine.WhisperEngine
 import com.tan.data.local.TanDatabase
 import com.tan.data.local.dao.TranscriptionDao
 import com.tan.data.repository.RoomTranscriptionRepository
+import com.tan.domain.engine.TranscriptionEngine
 import com.tan.domain.repository.TranscriptionRepository
 import dagger.Binds
 import dagger.Module
@@ -21,6 +23,10 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindTranscriptionRepository(impl: RoomTranscriptionRepository): TranscriptionRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindTranscriptionEngine(impl: WhisperEngine): TranscriptionEngine
 
     companion object {
         @Provides
