@@ -1,5 +1,6 @@
 package com.tan.data.engine
 
+import com.tan.domain.engine.TranscriptionCancelledException
 import com.tan.domain.engine.TranscriptionEngine
 import com.tan.domain.model.Segment
 import kotlinx.coroutines.CancellationException
@@ -32,12 +33,21 @@ class WhisperEngine @Inject constructor() : TranscriptionEngine {
         onProgress: (Int) -> Unit,
     ): List<Segment> = coroutineScope {
         val work = async(Dispatchers.Default) {
-            WhisperNative
-                .nativeTranscribe(wavPath, threads, language, ProgressListener { onProgress(it) })
-                .map { Segment(startMs = it.startMs, endMs = it.endMs, text = it.text) }
+            try {
+                Result.success(
+                    WhisperNative
+                        .nativeTranscribe(wavPath, threads, language, ProgressListener { onProgress(it) })
+                        .map { Segment(startMs = it.startMs, endMs = it.endMs, text = it.text) },
+                )
+            } catch (e: TranscriptionCancelledException) {
+                // Se devuelve como resultado y no se lanza: si lo lanzáramos, la tarea hija fallaría
+                // con un error "de verdad" y contaminaría a la corrutina que está cancelando.
+                Result.failure(e)
+            }
         }
         try {
-            work.await()
+            // Si cancelaron desde afuera con cancel(), acá se relanza TranscriptionCancelledException.
+            work.await().getOrThrow()
         } catch (e: CancellationException) {
             // Si cancelan la corrutina (por ejemplo, el usuario sale de la pantalla), el C++ no se
             // entera solo: hay que avisarle o seguiría transcribiendo y ocupando el motor.

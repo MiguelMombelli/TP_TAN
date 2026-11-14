@@ -6,6 +6,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.tan.domain.engine.InvalidAudioException
 import com.tan.domain.engine.ModelLoadException
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
@@ -88,6 +91,38 @@ class WhisperEngineSmokeTest {
         assertTrue("No devolvió segmentos", segments.isNotEmpty())
         assertTrue("Texto inesperado: $text", text.contains("country", ignoreCase = true))
         assertTrue("El progreso debería avanzar", progress.isNotEmpty())
+    }
+
+    /** Cancelar a mitad de camino debe cortar rápido y dejar el motor usable para la siguiente transcripción. */
+    @Test
+    fun cancelStopsTranscriptionAndEngineStaysUsable() = runBlocking<Unit> {
+        val found = findModel()
+        assumeTrue("Falta el modelo (ver el comentario de la clase).", found != null)
+        val modelFile = found!!
+
+        val wav = File(targetContext.cacheDir, "jfk.wav")
+        instrumentation.context.assets.open("jfk.wav").use { input ->
+            wav.outputStream().use { input.copyTo(it) }
+        }
+
+        val engine = WhisperEngine()
+        engine.loadModel(modelFile.absolutePath)
+
+        // Lanzamos la transcripción y la cancelamos a los 500 ms (en el celular tarda ~3 s).
+        val job = launch { engine.transcribe(wav.absolutePath, language = "en", threads = 4) }
+        delay(500)
+        val cancelStart = SystemClock.elapsedRealtime()
+        job.cancelAndJoin()
+        val cancelMs = SystemClock.elapsedRealtime() - cancelStart
+        Log.i(TAG, "Cancelación: la corrutina terminó ${cancelMs} ms después de cancelar (isCancelled=${job.isCancelled})")
+        assertTrue("La tarea debería figurar como cancelada", job.isCancelled)
+        assertTrue("Cancelar tardó demasiado: $cancelMs ms", cancelMs < 3000)
+
+        // Después de cancelar, el motor tiene que seguir funcionando.
+        val segments = engine.transcribe(wav.absolutePath, language = "en", threads = 4)
+        val text = segments.joinToString(" ") { it.text }
+        Log.i(TAG, "Tras cancelar, transcripción normal OK: $text")
+        assertTrue("Tras cancelar no transcribió bien: $text", text.contains("country", ignoreCase = true))
     }
 
     /** Copia el modelo desde los assets del APK de test a la caché de la app, que es donde el motor puede leerlo. */
