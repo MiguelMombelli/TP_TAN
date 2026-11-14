@@ -13,3 +13,5 @@
 .externalNativeBuild
 .cxx
 local.properties
+# Modelos de Whisper para el test del motor (pesan 75 MB o mas): no subir
+app/src/androidTest/assets/ggml-*.bin
