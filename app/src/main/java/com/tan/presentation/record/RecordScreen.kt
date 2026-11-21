@@ -44,6 +44,8 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -140,7 +142,7 @@ fun RecordContent(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    BigCircle(TanNaranja, onClick = onStart) { MicIcon() }
+                    BigCircle(TanNaranja, onClick = onStart, label = "Iniciar grabación") { MicIcon() }
                     Text("Toca para grabar", fontSize = 13.sp, color = TanTexto)
                 }
 
@@ -148,7 +150,7 @@ fun RecordContent(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    BigCircle(TanGrabando, onClick = onStop) { StopSquare() }
+                    BigCircle(TanGrabando, onClick = onStop, label = "Detener grabación") { StopSquare() }
                     Spacer(Modifier.height(8.dp))
                     Text(
                         text = formatTime(state.seconds),
@@ -225,6 +227,7 @@ private fun formatTime(totalSeconds: Int): String =
 private fun BigCircle(
     color: Color,
     onClick: (() -> Unit)?,
+    label: String? = null, // lo que lee TalkBack: el círculo solo trae un ícono, sin texto
     content: @Composable () -> Unit,
 ) {
     val base = Modifier
@@ -232,7 +235,8 @@ private fun BigCircle(
         .shadow(8.dp, CircleShape)
         .background(color, CircleShape)
     Box(
-        modifier = if (onClick != null) base.clickable(onClick = onClick) else base,
+        modifier = (if (onClick != null) base.clickable(onClick = onClick) else base)
+            .semantics { if (label != null) contentDescription = label },
         contentAlignment = Alignment.Center,
     ) { content() }
 }
