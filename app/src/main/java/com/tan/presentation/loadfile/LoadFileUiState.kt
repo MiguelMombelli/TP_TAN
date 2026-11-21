@@ -6,5 +6,12 @@ sealed interface LoadFileUiState {
         val fileName: String,
         val details: String,
     ) : LoadFileUiState
-    data object UnsupportedFormat : LoadFileUiState            // no está en el Figma
+    data class Converting(                                      // decodificando a WAV 16 kHz mono
+        val fileName: String,
+        val details: String,
+        val percent: Int,
+    ) : LoadFileUiState
+    data class Converted(val wavPath: String) : LoadFileUiState // listo: la pantalla navega a Transcribiendo
+    data object UnsupportedFormat : LoadFileUiState            // no es audio que Android sepa decodificar
+    data class Failed(val message: String) : LoadFileUiState   // no se pudo leer o convertir
 }

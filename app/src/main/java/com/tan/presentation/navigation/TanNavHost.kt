@@ -3,7 +3,6 @@ package com.tan.presentation.navigation
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -27,14 +26,6 @@ import com.tan.presentation.welcome.WelcomeScreen
 fun TanNavHost(startViewModel: StartViewModel = hiltViewModel()) {
     val navController = rememberNavController()
     val back: () -> Unit = { navController.popBackStack() }
-
-    // TEMPORAL (hasta T5): Importar todavía no produce un audio real, así que transcribe el audio
-    // de muestra (en inglés) de las compilaciones debug. Grabar ya entrega su WAV real.
-    val context = LocalContext.current
-    val transcribeSample: (TranscriptionSource) -> Unit = { source ->
-        val path = SampleAudio.copyToCache(context).orEmpty()
-        navController.navigate(Routes.transcribing(path, source, language = "en"))
-    }
 
     // Hasta saber si es la primera vez no se arma el NavHost (son unos milisegundos).
     val startRoute by startViewModel.startRoute.collectAsStateWithLifecycle()
@@ -70,7 +61,9 @@ fun TanNavHost(startViewModel: StartViewModel = hiltViewModel()) {
         composable(Routes.IMPORT) {
             LoadFileScreen(
                 onBack = back,
-                onContinue = { transcribeSample(TranscriptionSource.FILE) },
+                onContinue = { wavPath ->
+                    navController.navigate(Routes.transcribing(wavPath, TranscriptionSource.FILE))
+                },
             )
         }
         composable(
