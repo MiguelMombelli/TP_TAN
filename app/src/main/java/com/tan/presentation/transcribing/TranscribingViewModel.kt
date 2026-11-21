@@ -1,67 +1,151 @@
 package com.tan.presentation.transcribing
 
+import android.os.SystemClock
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tan.domain.engine.InvalidAudioException
+import com.tan.domain.engine.ModelLoadException
+import com.tan.domain.engine.TranscriptionCancelledException
+import com.tan.domain.engine.TranscriptionEngine
+import com.tan.domain.engine.TranscriptionFailedException
 import com.tan.domain.model.Transcription
 import com.tan.domain.model.TranscriptionSource
+import com.tan.domain.repository.ModelRepository
+import com.tan.domain.repository.PreferencesRepository
 import com.tan.domain.repository.TranscriptionRepository
 import com.tan.presentation.format.defaultTitle
-import com.tan.presentation.result.fakeSegments
+import com.tan.presentation.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.io.File
+import javax.inject.Inject
+import kotlin.math.ceil
 
+/**
+ * Transcribe el WAV que le llega por argumento de navegación con el modelo activo y guarda el
+ * resultado en Room. El WAV tiene que ser una copia temporal de la app (nunca el archivo original
+ * del usuario): se borra al guardar bien y se conserva si algo falla.
+ */
 @HiltViewModel
 class TranscribingViewModel @Inject constructor(
-    private val repository: TranscriptionRepository
+    savedStateHandle: SavedStateHandle,
+    private val engine: TranscriptionEngine,
+    private val models: ModelRepository,
+    private val prefs: PreferencesRepository,
+    private val repository: TranscriptionRepository,
 ) : ViewModel() {
 
+    private val wavPath: String? = savedStateHandle[Routes.ARG_PATH]
+    private val source: TranscriptionSource =
+        savedStateHandle.get<String>(Routes.ARG_SOURCE)
+            ?.let { name -> TranscriptionSource.entries.firstOrNull { it.name == name } }
+            ?: TranscriptionSource.RECORDING
+    private val language: String = savedStateHandle[Routes.ARG_LANG] ?: "es"
+
     private val _state = MutableStateFlow<TranscribingUiState>(
-        TranscribingUiState.InProgress(progress = 0f, minutesLeft = 10)
+        TranscribingUiState.InProgress(progress = 0f, minutesLeft = 1)
     )
     val state: StateFlow<TranscribingUiState> = _state.asStateFlow()
 
     private var job: Job? = null
 
-    // Transcripción SIMULADA: el progreso sube de a poco y al llegar a 100% se guarda en Room
-    // una transcripción de ejemplo. En la Etapa 8b esto se reemplaza por el motor real
-    // (progreso, segmentos y cancelación vienen de TranscriptionEngine).
     init {
-        job = viewModelScope.launch {
-            var p = 0f
-            while (p < 1f) {
-                delay(300)
-                p = (p + 0.02f).coerceAtMost(1f)
-                _state.value = TranscribingUiState.InProgress(
-                    progress = p,
-                    minutesLeft = ((1f - p) * 10).toInt() + 1,
-                )
+        job = viewModelScope.launch { transcribe() }
+    }
+
+    /**
+     * Cancela la corrutina; WhisperEngine le avisa al código nativo, que corta en cuanto termina
+     * su bloque de cálculo actual (con el modelo tiny, ~2 s). Salir de la pantalla también cancela.
+     */
+    fun onCancel() {
+        job?.cancel()
+    }
+
+    private suspend fun transcribe() {
+        val wav = wavPath?.let { File(it) }
+        if (wav == null || !wav.isFile) {
+            fail("No se encontró el audio a transcribir.")
+            return
+        }
+        val modelId = prefs.activeModelId.first()
+        val modelPath = models.activeModelPath()
+        if (modelId == null || modelPath == null) {
+            fail("No hay un modelo descargado. Elegí uno en Ajustes → Modelos.")
+            return
+        }
+
+        val durationMs = wavDurationMs(wav)
+        val startedAt = SystemClock.elapsedRealtime()
+        _state.value = TranscribingUiState.InProgress(0f, minutesLeft(0f, durationMs, 0L))
+
+        try {
+            engine.loadModel(modelPath)
+            val segments = engine.transcribe(wav.absolutePath, language, THREADS) { percent ->
+                val progress = percent / 100f
+                val elapsed = SystemClock.elapsedRealtime() - startedAt
+                _state.value = TranscribingUiState.InProgress(progress, minutesLeft(progress, durationMs, elapsed))
             }
-            _state.value = try {
-                val now = System.currentTimeMillis()
-                val id = repository.save(
-                    Transcription(
-                        title = defaultTitle(TranscriptionSource.RECORDING, now),
-                        createdAtMs = now,
-                        source = TranscriptionSource.RECORDING,
-                        model = "tiny",
-                        durationMs = 23_000,
-                        segments = fakeSegments()
-                    )
-                )
-                TranscribingUiState.Done(id)
-            } catch (e: Exception) {
-                TranscribingUiState.Error(progress = 1f, minutesLeft = 0)
+            if (segments.isEmpty()) {
+                fail("No se detectó voz en el audio.")
+                return
             }
+            val now = System.currentTimeMillis()
+            val id = repository.save(
+                Transcription(
+                    title = defaultTitle(source, now),
+                    createdAtMs = now,
+                    source = source,
+                    model = modelId,
+                    durationMs = durationMs,
+                    segments = segments,
+                )
+            )
+            wav.delete() // el audio no se guarda: solo el texto
+            _state.value = TranscribingUiState.Done(id)
+        } catch (e: CancellationException) {
+            throw e // cancelación de la corrutina: no es un error, no se muestra nada
+        } catch (e: TranscriptionCancelledException) {
+            // Cancelación pedida con engine.cancel() desde otro lado: tampoco es un error.
+        } catch (e: InvalidAudioException) {
+            fail("El archivo de audio no es válido o está dañado.")
+        } catch (e: ModelLoadException) {
+            fail("No se pudo cargar el modelo. Probá descargarlo de nuevo.")
+        } catch (e: TranscriptionFailedException) {
+            fail("La transcripción falló. Intentá de nuevo.")
+        } catch (e: Exception) {
+            fail("Error en el proceso de transcripción")
         }
     }
 
-    fun onCancel() {
-        job?.cancel()
+    private fun fail(message: String) {
+        val progress = (_state.value as? TranscribingUiState.InProgress)?.progress ?: 0f
+        _state.value = TranscribingUiState.Error(progress = progress, minutesLeft = 0, message = message)
+    }
+
+    /** WAV PCM 16 kHz mono 16 bits = 32 bytes por milisegundo, más ~44 bytes de cabecera. */
+    private fun wavDurationMs(wav: File): Long = (wav.length() - 44).coerceAtLeast(0) / 32
+
+    /**
+     * Estimación para el cartel "quedan X minutos". Al principio no hay datos: se supone una
+     * velocidad de x3 tiempo real (la medida con tiny en el Motorola fue x3,7). Desde el 5 % se
+     * extrapola con lo que ya tardó.
+     */
+    private fun minutesLeft(progress: Float, durationMs: Long, elapsedMs: Long): Int {
+        val remainingMs =
+            if (progress >= 0.05f) (elapsedMs * (1 - progress) / progress).toLong()
+            else durationMs / ASSUMED_SPEED
+        return ceil(remainingMs / 60_000.0).toInt().coerceAtLeast(1)
+    }
+
+    private companion object {
+        const val THREADS = 4 // medido en el Motorola Edge 30 Pro
+        const val ASSUMED_SPEED = 3
     }
 }
