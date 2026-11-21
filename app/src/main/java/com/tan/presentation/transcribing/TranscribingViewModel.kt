@@ -79,7 +79,7 @@ class TranscribingViewModel @Inject constructor(
         val modelId = prefs.activeModelId.first()
         val modelPath = models.activeModelPath()
         if (modelId == null || modelPath == null) {
-            fail("No hay un modelo descargado. Elegí uno en Ajustes → Modelos.")
+            fail("Todavía no hay un modelo descargado. Elegí uno para poder transcribir.", needsModel = true)
             return
         }
 
@@ -143,9 +143,11 @@ class TranscribingViewModel @Inject constructor(
         if (source == TranscriptionSource.FILE) wavPath?.let { File(it).delete() }
     }
 
-    private fun fail(message: String) {
+    private fun fail(message: String, needsModel: Boolean = false) {
         val progress = (_state.value as? TranscribingUiState.InProgress)?.progress ?: 0f
-        _state.value = TranscribingUiState.Error(progress = progress, minutesLeft = 0, message = message)
+        _state.value = TranscribingUiState.Error(
+            progress = progress, minutesLeft = 0, message = message, needsModel = needsModel,
+        )
     }
 
     /** WAV PCM 16 kHz mono 16 bits = 32 bytes por milisegundo, más ~44 bytes de cabecera. */

@@ -77,6 +77,10 @@ fun TanNavHost(startViewModel: StartViewModel = hiltViewModel()) {
             TranscribingScreen(
                 onCancel = back,
                 onErrorAccepted = back,
+                onChooseModel = {
+                    back()
+                    navController.navigate(Routes.MODELS)
+                },
                 onFinished = { id ->
                     navController.navigate(Routes.result(id)) { popUpTo(Routes.HOME) }
                 },

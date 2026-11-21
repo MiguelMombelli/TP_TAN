@@ -28,6 +28,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -47,6 +49,7 @@ fun TranscribingScreen(
     onCancel: () -> Unit,
     onErrorAccepted: () -> Unit,
     onFinished: (Long) -> Unit,
+    onChooseModel: () -> Unit,
     viewModel: TranscribingViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -63,7 +66,8 @@ fun TranscribingScreen(
             viewModel.onCancel()
             onCancel()
         },
-        onErrorAccepted = onErrorAccepted,
+        // Si falta un modelo, aceptar el error lleva a elegir uno en vez de volver atrás.
+        onErrorAccepted = if ((state as? TranscribingUiState.Error)?.needsModel == true) onChooseModel else onErrorAccepted,
     )
 }
 
@@ -105,7 +109,12 @@ fun TranscribingContent(
             Spacer(Modifier.weight(1f))
 
             // Anillo de progreso con el porcentaje adentro; si no hay porcentaje real, gira sin cifra.
-            Box(contentAlignment = Alignment.Center) {
+            val ringDescription =
+                if (indeterminate) "Procesando el audio" else "${(progress * 100).toInt()} por ciento completado"
+            Box(
+                modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = ringDescription },
+                contentAlignment = Alignment.Center,
+            ) {
                 if (indeterminate) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(170.dp),
@@ -195,12 +204,16 @@ fun TranscribingContent(
     }
 
     if (state is TranscribingUiState.Error) {
-        ErrorDialog(message = state.message, onAccept = onErrorAccepted)
+        ErrorDialog(
+            message = state.message,
+            buttonText = if (state.needsModel) "Elegir modelo" else "Aceptar",
+            onAccept = onErrorAccepted,
+        )
     }
 }
 
 @Composable
-private fun ErrorDialog(message: String, onAccept: () -> Unit) {
+private fun ErrorDialog(message: String, buttonText: String, onAccept: () -> Unit) {
     Dialog(onDismissRequest = {}) {
         Surface(shape = RoundedCornerShape(12.dp), color = Color.White) {
             Column(
@@ -221,7 +234,7 @@ private fun ErrorDialog(message: String, onAccept: () -> Unit) {
                     colors = ButtonDefaults.buttonColors(containerColor = TanNaranja),
                     modifier = Modifier.fillMaxWidth().height(44.dp),
                 ) {
-                    Text("Aceptar", fontSize = 14.sp, color = Color.White)
+                    Text(buttonText, fontSize = 14.sp, color = Color.White)
                 }
             }
         }
