@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tan.domain.engine.TranscriptionEngine
 import com.tan.domain.model.ModelCatalog
+import com.tan.domain.repository.DownloadFailure
 import com.tan.domain.repository.DownloadState
 import com.tan.domain.repository.ModelRepository
 import com.tan.domain.repository.PreferencesRepository
@@ -47,7 +48,8 @@ class ModelsViewModel @Inject constructor(
                     },
                 )
             },
-            connectionError = downloads.values.any { it is DownloadState.Failed },
+            errorMessage = downloads.values.filterIsInstance<DownloadState.Failed>().firstOrNull()
+                ?.let { errorText(it.reason) },
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ModelsUiState.Loading)
 
@@ -69,6 +71,12 @@ class ModelsViewModel @Inject constructor(
             models.delete(id)
         }
     }
+}
+
+private fun errorText(reason: DownloadFailure) = when (reason) {
+    DownloadFailure.NO_CONNECTION -> "Sin conexión a internet. Verificá tu conexión e intentá de nuevo"
+    DownloadFailure.NO_SPACE -> "No hay espacio suficiente en el dispositivo para este modelo"
+    DownloadFailure.OTHER -> "No se pudo descargar el modelo. Intentá de nuevo en un rato"
 }
 
 // Datos de ejemplo: solo para las previews de ModelsScreen.

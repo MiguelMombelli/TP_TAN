@@ -6,8 +6,14 @@ sealed interface DownloadState {
     /** Descargando; [fraction] va de 0f a 1f. */
     data class Progress(val fraction: Float) : DownloadState
 
-    /** La descarga falló (sin red, servidor caído, archivo incompleto...). */
-    data object Failed : DownloadState
+    /** La descarga falló; [reason] dice por qué, para mostrar un mensaje que no engañe. */
+    data class Failed(val reason: DownloadFailure) : DownloadState
+}
+
+enum class DownloadFailure {
+    NO_CONNECTION, // sin red, red cortada a mitad, archivo incompleto
+    NO_SPACE,      // no entra en el almacenamiento del dispositivo
+    OTHER,         // el servidor respondió con error u otra causa
 }
 
 /** Modelos de Whisper en el dispositivo: descargarlos, borrarlos y saber dónde están. */
