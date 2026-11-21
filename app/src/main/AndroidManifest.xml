@@ -13,6 +13,10 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!-- Transcribir: servicio en primer plano (tipo sincronización de datos, sin micrófono) para que
+         Android no mate la app con la pantalla apagada mientras Whisper trabaja. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
     <application
         android:name=".TanApp"
         android:allowBackup="false"
@@ -40,6 +44,11 @@
             android:name=".data.audio.RecordingService"
             android:exported="false"
             android:foregroundServiceType="microphone" />
+
+        <service
+            android:name=".data.engine.TranscriptionService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
