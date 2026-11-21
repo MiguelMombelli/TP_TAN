@@ -7,6 +7,8 @@ plugins {
 
 android {
     namespace = "com.tan"
+    // NDK fija para que todos compilen el motor nativo con el mismo compilador.
+    ndkVersion = "28.2.13676358"
     compileSdk {
         version = release(37)
     }
