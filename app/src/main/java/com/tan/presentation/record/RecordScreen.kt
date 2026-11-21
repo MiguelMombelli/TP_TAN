@@ -1,8 +1,14 @@
 package com.tan.presentation.record
 
 import android.Manifest
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -27,6 +33,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -40,6 +49,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.tan.R
@@ -63,16 +73,28 @@ fun RecordScreen(
 
     // Pide el micrófono (decisivo) y, desde Android 13, el permiso de notificaciones: sin él la
     // grabación igual funciona, solo que no se ve el aviso.
+    // Tras negarlo dos veces Android deja de mostrar el diálogo: el único camino es Ajustes.
+    var needsSettings by remember { mutableStateOf(false) }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { results ->
-        viewModel.onPermissionResult(results[Manifest.permission.RECORD_AUDIO] == true)
+        val granted = results[Manifest.permission.RECORD_AUDIO] == true
+        if (!granted) {
+            val activity = context.findActivity()
+            needsSettings = activity != null &&
+                !ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.RECORD_AUDIO)
+        }
+        viewModel.onPermissionResult(granted)
     }
     val onStart: () -> Unit = {
         val micGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
             PackageManager.PERMISSION_GRANTED
         if (micGranted) {
             viewModel.onPermissionResult(true)
+        } else if (needsSettings) {
+            context.startActivity(
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null))
+            )
         } else {
             val permissions = buildList {
                 add(Manifest.permission.RECORD_AUDIO)
@@ -90,6 +112,13 @@ fun RecordScreen(
         onRecordAgain = viewModel::onRecordAgain,
         onTranscribe = { (state as? RecordUiState.Saved)?.let { onTranscribe(it.wavPath) } },
     )
+}
+
+// El contexto de Compose puede venir envuelto; hay que llegar hasta la Activity.
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
 
 @Composable

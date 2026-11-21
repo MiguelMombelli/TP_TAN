@@ -134,6 +134,15 @@ class TranscribingViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Un audio importado es una copia temporal que nadie más usa: si se sale de la pantalla sin
+     * terminar (cancelar, aceptar un error, volver atrás) se borra. Una grabación se conserva,
+     * porque la pantalla Grabar la sigue mostrando y permite reintentar.
+     */
+    override fun onCleared() {
+        if (source == TranscriptionSource.FILE) wavPath?.let { File(it).delete() }
+    }
+
     private fun fail(message: String) {
         val progress = (_state.value as? TranscribingUiState.InProgress)?.progress ?: 0f
         _state.value = TranscribingUiState.Error(progress = progress, minutesLeft = 0, message = message)
