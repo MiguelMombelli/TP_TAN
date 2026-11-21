@@ -28,8 +28,8 @@ fun TanNavHost(startViewModel: StartViewModel = hiltViewModel()) {
     val navController = rememberNavController()
     val back: () -> Unit = { navController.popBackStack() }
 
-    // TEMPORAL (hasta T5 y T6): Grabar e Importar todavía no producen un audio real, así que
-    // transcriben el audio de muestra (en inglés) de las compilaciones debug.
+    // TEMPORAL (hasta T5): Importar todavía no produce un audio real, así que transcribe el audio
+    // de muestra (en inglés) de las compilaciones debug. Grabar ya entrega su WAV real.
     val context = LocalContext.current
     val transcribeSample: (TranscriptionSource) -> Unit = { source ->
         val path = SampleAudio.copyToCache(context).orEmpty()
@@ -62,7 +62,9 @@ fun TanNavHost(startViewModel: StartViewModel = hiltViewModel()) {
         composable(Routes.RECORD) {
             RecordScreen(
                 onBack = { navController.popBackStack() },
-                onTranscribe = { transcribeSample(TranscriptionSource.RECORDING) },
+                onTranscribe = { wavPath ->
+                    navController.navigate(Routes.transcribing(wavPath, TranscriptionSource.RECORDING))
+                },
             )
         }
         composable(Routes.IMPORT) {

@@ -1,5 +1,10 @@
 package com.tan.presentation.record
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,12 +33,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.tan.R
 import com.tan.presentation.components.TanTopBar
@@ -47,17 +54,41 @@ import com.tan.ui.theme.TanVerde
 @Composable
 fun RecordScreen(
     onBack: () -> Unit,
-    onTranscribe: () -> Unit,
+    /** Recibe la ruta del WAV grabado (temporal, lo borra la transcripción al terminar bien). */
+    onTranscribe: (String) -> Unit,
     viewModel: RecordViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    // Pide el micrófono (decisivo) y, desde Android 13, el permiso de notificaciones: sin él la
+    // grabación igual funciona, solo que no se ve el aviso.
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
+        viewModel.onPermissionResult(results[Manifest.permission.RECORD_AUDIO] == true)
+    }
+    val onStart: () -> Unit = {
+        val micGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+            PackageManager.PERMISSION_GRANTED
+        if (micGranted) {
+            viewModel.onPermissionResult(true)
+        } else {
+            val permissions = buildList {
+                add(Manifest.permission.RECORD_AUDIO)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+            permissionLauncher.launch(permissions.toTypedArray())
+        }
+    }
+
     RecordContent(
         state = state,
         onBack = onBack,
-        onStart = viewModel::onStart,
+        onStart = onStart,
         onStop = viewModel::onStop,
         onRecordAgain = viewModel::onRecordAgain,
-        onTranscribe = onTranscribe,
+        onTranscribe = { (state as? RecordUiState.Saved)?.let { onTranscribe(it.wavPath) } },
     )
 }
 
@@ -99,7 +130,7 @@ fun RecordContent(
                     Text("Grabando…", fontSize = 13.sp, color = TanGrabando)
                 }
 
-                RecordUiState.Saved -> Column(
+                is RecordUiState.Saved -> Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
@@ -122,7 +153,22 @@ fun RecordContent(
                     ActionButton("Grabar de nuevo", TanNaranja, onRecordAgain) { MicIcon(size = 16) }
                 }
 
-                // Estado no diseñado en el Figma: diseño mínimo propio.
+                // Estados no diseñados en el Figma: diseño mínimo propio.
+                is RecordUiState.Failed -> Column(
+                    modifier = Modifier.padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    BigCircle(TanGrabando.copy(alpha = 0.4f), onClick = null) { MicIcon() }
+                    Text(
+                        state.message,
+                        fontSize = 13.sp,
+                        color = TanTexto,
+                        textAlign = TextAlign.Center,
+                    )
+                    ActionButton("Reintentar", TanNaranja, onRecordAgain) {}
+                }
+
                 RecordUiState.PermissionDenied -> Column(
                     modifier = Modifier.padding(32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -218,11 +264,17 @@ private fun RecordRecordingPreview() = TANTheme {
 @Preview(showBackground = true)
 @Composable
 private fun RecordSavedPreview() = TANTheme {
-    RecordContent(RecordUiState.Saved, {}, {}, {}, {}, {})
+    RecordContent(RecordUiState.Saved(""), {}, {}, {}, {}, {})
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun RecordPermissionPreview() = TANTheme {
     RecordContent(RecordUiState.PermissionDenied, {}, {}, {}, {}, {})
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun RecordFailedPreview() = TANTheme {
+    RecordContent(RecordUiState.Failed("No se pudo acceder al micrófono."), {}, {}, {}, {}, {})
 }
