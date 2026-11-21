@@ -1,12 +1,14 @@
 package com.tan.presentation.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.tan.presentation.components.PlaceholderScreen
 import com.tan.presentation.detail.DetailScreen
 import com.tan.presentation.history.HistoryScreen
 import com.tan.presentation.home.HomeScreen
@@ -15,15 +17,29 @@ import com.tan.presentation.models.ModelsScreen
 import com.tan.presentation.record.RecordScreen
 import com.tan.presentation.result.ResultScreen
 import com.tan.presentation.settings.SettingsScreen
+import com.tan.presentation.start.StartViewModel
 import com.tan.presentation.transcribing.TranscribingScreen
+import com.tan.presentation.welcome.WelcomeScreen
 
 @Composable
-fun TanNavHost() {
+fun TanNavHost(startViewModel: StartViewModel = hiltViewModel()) {
     val navController = rememberNavController()
     val back: () -> Unit = { navController.popBackStack() }
 
-    NavHost(navController = navController, startDestination = Routes.HOME) {
-        composable(Routes.WELCOME) { PlaceholderScreen("Bienvenida", back) }
+    // Hasta saber si es la primera vez no se arma el NavHost (son unos milisegundos).
+    val startRoute by startViewModel.startRoute.collectAsState()
+    val start = startRoute ?: return
+
+    NavHost(navController = navController, startDestination = start) {
+        composable(Routes.WELCOME) {
+            WelcomeScreen(
+                onChooseModel = {
+                    // Bienvenida -> Inicio -> Modelos: al volver atrás desde Modelos se cae en Inicio.
+                    navController.navigate(Routes.HOME) { popUpTo(Routes.WELCOME) { inclusive = true } }
+                    navController.navigate(Routes.MODELS)
+                },
+            )
+        }
         composable(Routes.MODELS) { ModelsScreen(onBack = back) }
         composable(Routes.HOME) {
             HomeScreen(

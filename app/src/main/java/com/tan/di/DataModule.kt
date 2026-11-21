@@ -5,8 +5,12 @@ import androidx.room.Room
 import com.tan.data.engine.WhisperEngine
 import com.tan.data.local.TanDatabase
 import com.tan.data.local.dao.TranscriptionDao
+import com.tan.data.repository.DataStorePreferencesRepository
+import com.tan.data.repository.FileModelRepository
 import com.tan.data.repository.RoomTranscriptionRepository
 import com.tan.domain.engine.TranscriptionEngine
+import com.tan.domain.repository.ModelRepository
+import com.tan.domain.repository.PreferencesRepository
 import com.tan.domain.repository.TranscriptionRepository
 import dagger.Binds
 import dagger.Module
@@ -27,6 +31,14 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindTranscriptionEngine(impl: WhisperEngine): TranscriptionEngine
+
+    @Binds
+    @Singleton
+    abstract fun bindModelRepository(impl: FileModelRepository): ModelRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindPreferencesRepository(impl: DataStorePreferencesRepository): PreferencesRepository
 
     companion object {
         @Provides
