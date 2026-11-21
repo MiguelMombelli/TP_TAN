@@ -120,7 +120,7 @@ fun LoadFileContent(
             if (state is LoadFileUiState.UnsupportedFormat) {
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    text = "Formato no soportado. Elegí un archivo MP3, M4A o WAV.",
+                    text = "Formato no soportado. Elegí un archivo MP3, M4A, WAV, OGG/Opus o MP4.",
                     fontSize = 12.sp,
                     color = TanRojo,
                 )
@@ -229,7 +229,7 @@ private fun DropZone(onClick: () -> Unit) {
                 textAlign = TextAlign.Center,
             )
             Text(
-                text = "MP3, M4A, WAV · máximo 2 GB",
+                text = "MP3, M4A, WAV, OGG, MP4 · máximo 2 GB",
                 fontSize = 10.sp,
                 color = TanTexto.copy(alpha = 0.6f),
             )
