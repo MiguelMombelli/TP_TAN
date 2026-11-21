@@ -42,6 +42,10 @@ class LoadFileViewModel @Inject constructor(
         job = viewModelScope.launch {
             try {
                 val info = importer.inspect(uri)
+                if (info.sizeBytes > MAX_FILE_BYTES) {
+                    _state.value = LoadFileUiState.Failed("El archivo supera el máximo de 2 GB.")
+                    return@launch
+                }
                 _state.value = LoadFileUiState.Selected(info.name, describe(info))
             } catch (e: CancellationException) {
                 throw e
@@ -104,5 +108,6 @@ class LoadFileViewModel @Inject constructor(
 
     private companion object {
         const val GENERIC_ERROR = "No se pudo importar el archivo."
+        const val MAX_FILE_BYTES = 2L * 1024 * 1024 * 1024 // el límite que promete la pantalla
     }
 }

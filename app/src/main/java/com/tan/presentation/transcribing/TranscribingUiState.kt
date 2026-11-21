@@ -15,6 +15,8 @@ sealed interface TranscribingUiState {
         val progress: Float,
         val minutesLeft: Int,
         val message: String = "Error en el proceso de transcripción",
+        /** true si el error se arregla descargando un modelo: el diálogo lleva directo a Modelos. */
+        val needsModel: Boolean = false,
     ) : TranscribingUiState
 
     /** La transcripción terminó y quedó guardada con este id. */
