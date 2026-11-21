@@ -1,21 +1,33 @@
 package com.tan.presentation.settings
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.tan.domain.model.ModelCatalog
+import com.tan.domain.repository.PreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import javax.inject.Inject
 
 @HiltViewModel
-class SettingsViewModel @Inject constructor() : ViewModel() {
-    // Datos falsos. Más adelante el modelo activo sale del almacenamiento de modelos de Miguel.
-    private val _state = MutableStateFlow<SettingsUiState>(
-        SettingsUiState.Content(activeModel = fakeActiveModel(), language = "Español")
-    )
-    val state: StateFlow<SettingsUiState> = _state.asStateFlow()
+class SettingsViewModel @Inject constructor(
+    prefs: PreferencesRepository,
+) : ViewModel() {
+
+    val state: StateFlow<SettingsUiState> = prefs.activeModelId.map { id ->
+        val model = id?.let { ModelCatalog.byId(it) }
+        SettingsUiState.Content(
+            activeModel = model?.let {
+                ActiveModelUi(name = "ggml-${it.id}", sizeLabel = it.sizeLabel, description = it.speedLabel)
+            },
+            language = "Español", // por ahora el idioma es fijo
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState.Loading)
 }
 
+// Se usa en las previews de SettingsScreen.
 fun fakeActiveModel() = ActiveModelUi(
     name = "ggml-base",
     sizeLabel = "145 MB",
