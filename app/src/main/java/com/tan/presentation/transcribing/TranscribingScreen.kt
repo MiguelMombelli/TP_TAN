@@ -75,18 +75,22 @@ fun TranscribingContent(
 ) {
     val progress: Float
     val minutesLeft: Int
+    val indeterminate: Boolean
     when (state) {
         is TranscribingUiState.InProgress -> {
             progress = state.progress
             minutesLeft = state.minutesLeft
+            indeterminate = state.indeterminate
         }
         is TranscribingUiState.Error -> {
             progress = state.progress
             minutesLeft = state.minutesLeft
+            indeterminate = false
         }
         is TranscribingUiState.Done -> {
             progress = 1f
             minutesLeft = 0
+            indeterminate = false
         }
     }
 
@@ -100,25 +104,41 @@ fun TranscribingContent(
         ) {
             Spacer(Modifier.weight(1f))
 
-            // Anillo de progreso con el porcentaje adentro
+            // Anillo de progreso con el porcentaje adentro; si no hay porcentaje real, gira sin cifra.
             Box(contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier.size(170.dp),
-                    color = TanNaranja,
-                    trackColor = TanTurquesa.copy(alpha = 0.15f),
-                    strokeWidth = 14.dp,
-                    strokeCap = StrokeCap.Round,
-                    gapSize = 0.dp,
-                )
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                if (indeterminate) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(170.dp),
+                        color = TanNaranja,
+                        trackColor = TanTurquesa.copy(alpha = 0.15f),
+                        strokeWidth = 14.dp,
+                        strokeCap = StrokeCap.Round,
+                    )
                     Text(
-                        text = "${(progress * 100).toInt()}%",
-                        fontSize = 40.sp,
-                        fontWeight = FontWeight.ExtraBold,
+                        text = "Procesando…",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
                         color = TanTexto,
                     )
-                    Text("completado", fontSize = 10.sp, color = TanTexto.copy(alpha = 0.6f))
+                } else {
+                    CircularProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.size(170.dp),
+                        color = TanNaranja,
+                        trackColor = TanTurquesa.copy(alpha = 0.15f),
+                        strokeWidth = 14.dp,
+                        strokeCap = StrokeCap.Round,
+                        gapSize = 0.dp,
+                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "${(progress * 100).toInt()}%",
+                            fontSize = 40.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = TanTexto,
+                        )
+                        Text("completado", fontSize = 10.sp, color = TanTexto.copy(alpha = 0.6f))
+                    }
                 }
             }
 
@@ -214,6 +234,12 @@ private fun ErrorDialog(message: String, onAccept: () -> Unit) {
 @Composable
 private fun TranscribingInProgressPreview() = TANTheme {
     TranscribingContent(TranscribingUiState.InProgress(0.62f, 8), {}, {})
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun TranscribingIndeterminatePreview() = TANTheme {
+    TranscribingContent(TranscribingUiState.InProgress(0f, 1, indeterminate = true), {}, {})
 }
 
 @Preview(showBackground = true)

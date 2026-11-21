@@ -4,6 +4,11 @@ sealed interface TranscribingUiState {
     data class InProgress(
         val progress: Float,
         val minutesLeft: Int,
+        /**
+         * true si no se puede informar un porcentaje real: Whisper avisa el avance recién al terminar
+         * cada ventana de 30 s, así que en un audio corto saltaría de 0 % a 100 %.
+         */
+        val indeterminate: Boolean = false,
     ) : TranscribingUiState
 
     data class Error(

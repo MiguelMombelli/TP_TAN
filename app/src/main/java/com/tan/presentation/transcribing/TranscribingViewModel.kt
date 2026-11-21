@@ -83,14 +83,18 @@ class TranscribingViewModel @Inject constructor(
 
         val durationMs = wavDurationMs(wav)
         val startedAt = SystemClock.elapsedRealtime()
-        _state.value = TranscribingUiState.InProgress(0f, minutesLeft(0f, durationMs, 0L))
+        // Con un audio de una sola ventana de Whisper no hay avance intermedio que mostrar.
+        val indeterminate = durationMs <= WHISPER_WINDOW_MS
+        _state.value = TranscribingUiState.InProgress(0f, minutesLeft(0f, durationMs, 0L), indeterminate)
 
         try {
             engine.loadModel(modelPath)
             val segments = engine.transcribe(wav.absolutePath, language, THREADS) { percent ->
                 val progress = percent / 100f
                 val elapsed = SystemClock.elapsedRealtime() - startedAt
-                _state.value = TranscribingUiState.InProgress(progress, minutesLeft(progress, durationMs, elapsed))
+                _state.value = TranscribingUiState.InProgress(
+                    progress, minutesLeft(progress, durationMs, elapsed), indeterminate,
+                )
             }
             if (segments.isEmpty()) {
                 fail("No se detectó voz en el audio.")
@@ -147,5 +151,6 @@ class TranscribingViewModel @Inject constructor(
     private companion object {
         const val THREADS = 4 // medido en el Motorola Edge 30 Pro
         const val ASSUMED_SPEED = 3
+        const val WHISPER_WINDOW_MS = 30_000L // whisper.cpp procesa y avisa de a 30 s de audio
     }
 }
