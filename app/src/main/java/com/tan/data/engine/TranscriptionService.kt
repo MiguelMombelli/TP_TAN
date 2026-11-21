@@ -15,8 +15,9 @@ import androidx.core.app.ServiceCompat
 import com.tan.R
 
 /**
- * Servicio en primer plano que NO transcribe: solo existe para que, mientras Whisper trabaja en el
- * ViewModel, Android considere a la app "en uso" (por la notificación) y no la mate. El WakeLock
+ * Servicio en primer plano que NO hace el trabajo: solo existe para que, mientras Whisper
+ * transcribe, se convierte un audio o se descarga un modelo, Android considere a la app "en uso"
+ * (por la notificación) y no la mate. El WakeLock
  * evita que el CPU se duerma con la pantalla apagada. La transcripción sigue viviendo en el
  * ViewModel; si el usuario sale de la pantalla con "atrás", se cancela y este servicio se detiene.
  */
@@ -48,7 +49,7 @@ class TranscriptionService : Service() {
     private fun buildNotification(): Notification {
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, "Transcripción de audio", NotificationManager.IMPORTANCE_LOW)
+            NotificationChannel(CHANNEL_ID, "Trabajo en segundo plano", NotificationManager.IMPORTANCE_LOW)
         )
         // El intent de lanzamiento trae la app existente al frente en vez de abrir otra instancia.
         val openApp = PendingIntent.getActivity(
@@ -58,7 +59,7 @@ class TranscriptionService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_mic)
             .setContentTitle("TAN")
-            .setContentText("Transcribiendo audio…")
+            .setContentText("Trabajando en segundo plano…")
             .setOngoing(true)
             .setUsesChronometer(true)
             .setContentIntent(openApp)

@@ -20,6 +20,6 @@ sealed interface ModelsUiState {
     data object Loading : ModelsUiState
     data class Content(
         val models: List<ModelItemUi>,
-        val connectionError: Boolean = false, // franja roja inferior
+        val errorMessage: String? = null, // franja roja inferior; null si no hay error
     ) : ModelsUiState
 }

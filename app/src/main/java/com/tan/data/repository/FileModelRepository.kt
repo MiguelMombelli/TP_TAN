@@ -2,8 +2,10 @@ package com.tan.data.repository
 
 import android.content.Context
 import com.tan.data.remote.ModelDownloadApi
+import com.tan.domain.engine.TranscriptionKeepAlive
 import com.tan.domain.model.ModelCatalog
 import com.tan.domain.model.WhisperModel
+import com.tan.domain.repository.DownloadFailure
 import com.tan.domain.repository.DownloadState
 import com.tan.domain.repository.ModelRepository
 import com.tan.domain.repository.PreferencesRepository
@@ -40,6 +42,7 @@ class FileModelRepository @Inject constructor(
     @ApplicationContext context: Context,
     private val prefs: PreferencesRepository,
     private val api: ModelDownloadApi,
+    private val keepAlive: TranscriptionKeepAlive,
 ) : ModelRepository {
 
     private val modelsDir = File(context.filesDir, "models").apply { mkdirs() }
@@ -85,11 +88,13 @@ class FileModelRepository @Inject constructor(
     private suspend fun download(model: WhisperModel) {
         val part = partFile(model)
         setDownload(model.id, DownloadState.Progress(0f))
+        // Con la pantalla apagada o en otra app, Android puede cortar la red a una app sin servicio.
+        keepAlive.start()
         try {
             downloadToFile(model.fileName, part) { setDownload(model.id, DownloadState.Progress(it)) }
             // Solo con la descarga completa el archivo pasa a tener su nombre definitivo.
             if (!part.renameTo(File(modelsDir, model.fileName))) {
-                throw IOException("No se pudo renombrar ${part.name}")
+                throw DownloadFailureException(DownloadFailure.OTHER, "No se pudo renombrar ${part.name}")
             }
             _downloadedIds.update { it + model.id }
             // El primer modelo que se baja queda activo solo; así no hay un paso extra para empezar.
@@ -100,8 +105,17 @@ class FileModelRepository @Inject constructor(
             throw e
         } catch (e: IOException) {
             part.delete()
-            setDownload(model.id, DownloadState.Failed)
+            setDownload(model.id, DownloadState.Failed(classify(e)))
+        } finally {
+            keepAlive.stop() // termine bien, falle o se cancele
         }
+    }
+
+    /** Distingue por qué falló para no culpar siempre a la conexión. */
+    private fun classify(e: IOException): DownloadFailure = when {
+        e is DownloadFailureException -> e.reason
+        e.message?.contains("ENOSPC") == true -> DownloadFailure.NO_SPACE // disco lleno al escribir
+        else -> DownloadFailure.NO_CONNECTION // sin red, red cortada, tiempo agotado, descarga incompleta
     }
 
     private suspend fun downloadToFile(fileName: String, dest: File, onProgress: (Float) -> Unit) {
@@ -110,10 +124,15 @@ class FileModelRepository @Inject constructor(
         val response = api.download(fileName)
         if (!response.isSuccessful) {
             response.errorBody()?.close()
-            throw IOException("El servidor respondió HTTP ${response.code()}")
+            throw DownloadFailureException(DownloadFailure.OTHER, "El servidor respondió HTTP ${response.code()}")
         }
-        val body = response.body() ?: throw IOException("El servidor respondió sin contenido")
+        val body = response.body()
+            ?: throw DownloadFailureException(DownloadFailure.OTHER, "El servidor respondió sin contenido")
         val total = body.contentLength() // -1 si el servidor no informa el tamaño
+        if (total > 0 && modelsDir.usableSpace < total) {
+            body.close()
+            throw DownloadFailureException(DownloadFailure.NO_SPACE, "Faltan ${total - modelsDir.usableSpace} bytes")
+        }
         var done = 0L
         var lastReported = 0f
         body.use { // cierra la conexión al terminar, también si hay error o cancelación
@@ -140,6 +159,9 @@ class FileModelRepository @Inject constructor(
         }
         if (total > 0 && done != total) throw IOException("Descarga incompleta: $done de $total bytes")
     }
+
+    /** Falla con causa conocida; cualquier otra IOException se toma como problema de red. */
+    private class DownloadFailureException(val reason: DownloadFailure, message: String) : IOException(message)
 
     private fun partFile(model: WhisperModel) = File(modelsDir, model.fileName + ".part")
 

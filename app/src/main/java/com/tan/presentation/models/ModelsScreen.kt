@@ -78,8 +78,8 @@ fun ModelsContent(
     Scaffold(
         topBar = { TanTopBar(title = "Seleccionar modelo", onBack = onBack) },
         bottomBar = {
-            if (state is ModelsUiState.Content && state.connectionError) {
-                OfflineBanner()
+            if (state is ModelsUiState.Content && state.errorMessage != null) {
+                ErrorBanner(state.errorMessage)
             }
         },
     ) { padding ->
@@ -111,7 +111,7 @@ fun ModelsContent(
 
 // Franja roja pegada abajo, sin botón (Figma "Error descarga").
 @Composable
-private fun OfflineBanner() {
+private fun ErrorBanner(message: String) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -120,7 +120,7 @@ private fun OfflineBanner() {
             .padding(horizontal = 16.dp, vertical = 14.dp),
     ) {
         Text(
-            text = "Sin conexión a internet. Verificá tu conexión e intentá de nuevo",
+            text = message,
             color = Color.White,
             fontSize = 11.sp,
         )
@@ -270,5 +270,5 @@ private fun ModelsActivePreview() = TANTheme {
 @Preview(showBackground = true)
 @Composable
 private fun ModelsOfflinePreview() = TANTheme {
-    ModelsContent(ModelsUiState.Content(sample, connectionError = true), {}, {}, {}, {})
+    ModelsContent(ModelsUiState.Content(sample, errorMessage = "Sin conexión a internet. Verificá tu conexión e intentá de nuevo"), {}, {}, {}, {})
 }
