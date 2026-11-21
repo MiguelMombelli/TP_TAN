@@ -2,6 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Solo para descargar los modelos de Whisper; el audio y los textos nunca salen del celular. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:name=".TanApp"
         android:allowBackup="false"
