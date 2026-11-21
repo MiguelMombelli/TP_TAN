@@ -33,6 +33,28 @@ class RoomTranscriptionRepositoryTest {
         assertEquals(3200L, loaded.segments[1].startMs)
     }
 
+    @Test fun search_findsByTitleOrText_ignoringCase() = runBlocking {
+        repository.save(sample(title = "Clase de Física"))
+        repository.save(sample(title = "Entrevista").copy(segments = listOf(Segment(0, 1000, "hablamos de física cuántica"))))
+        repository.save(sample(title = "Receta").copy(segments = listOf(Segment(0, 1000, "dos huevos"))))
+        assertEquals(setOf("Clase de Física", "Entrevista"), repository.search("física").first().map { it.title }.toSet())
+        assertEquals(listOf("Clase de Física"), repository.search("CLASE").first().map { it.title }) // sin tilde, ignora mayúsculas
+        assertEquals(listOf("Receta"), repository.search("huevos").first().map { it.title })
+    }
+
+    @Test fun search_blankReturnsEverything_noMatchReturnsEmpty() = runBlocking {
+        repository.save(sample(title = "Uno"))
+        repository.save(sample(title = "Dos"))
+        assertEquals(2, repository.search("   ").first().size)
+        assertEquals(emptyList<Any>(), repository.search("zzz").first())
+    }
+
+    @Test fun search_treatsPercentLiterally() = runBlocking {
+        repository.save(sample(title = "Clase"))
+        repository.save(sample(title = "100% listo"))
+        assertEquals(listOf("100% listo"), repository.search("%").first().map { it.title })
+    }
+
     @Test fun getById_unknownReturnsNull() = runBlocking {
         assertNull(repository.getById(42))
     }

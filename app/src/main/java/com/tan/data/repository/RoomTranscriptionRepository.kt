@@ -18,6 +18,14 @@ class RoomTranscriptionRepository @Inject constructor(
     override fun observeAll(): Flow<List<TranscriptionSummary>> =
         dao.observeSummaries().map { rows -> rows.map { it.toDomain() } }
 
+    override fun search(query: String): Flow<List<TranscriptionSummary>> {
+        val text = query.trim()
+        if (text.isEmpty()) return observeAll()
+        // Lo que escribe el usuario se busca literal: % y _ son comodines de LIKE y se escapan.
+        val escaped = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        return dao.searchSummaries("%$escaped%").map { rows -> rows.map { it.toDomain() } }
+    }
+
     override suspend fun getById(id: Long): Transcription? {
         val transcription = dao.getTranscription(id) ?: return null
         return transcription.toDomain(dao.getSegments(id))

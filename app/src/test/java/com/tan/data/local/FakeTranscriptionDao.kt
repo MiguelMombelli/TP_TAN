@@ -22,6 +22,17 @@ class FakeTranscriptionDao : TranscriptionDao() {
                 }
         }
 
+    // Imita el LIKE del DAO real: quita los % de los bordes y las barras de escape del patrón.
+    override fun searchSummaries(pattern: String): Flow<List<TranscriptionSummaryRow>> {
+        val needle = pattern.removePrefix("%").removeSuffix("%").replace(Regex("\\\\(.)"), "$1")
+        return observeSummaries().map { rows ->
+            rows.filter { row ->
+                val full = transcriptions.value.first { it.id == row.id }
+                full.title.contains(needle, ignoreCase = true) || full.text.contains(needle, ignoreCase = true)
+            }
+        }
+    }
+
     override suspend fun getTranscription(id: Long): TranscriptionEntity? =
         transcriptions.value.firstOrNull { it.id == id }
 
