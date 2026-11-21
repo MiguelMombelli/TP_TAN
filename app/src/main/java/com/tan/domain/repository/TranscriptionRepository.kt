@@ -9,6 +9,12 @@ interface TranscriptionRepository {
     /** Lista para el Historial, la más nueva primero. Se actualiza sola al guardar o borrar. */
     fun observeAll(): Flow<List<TranscriptionSummary>>
 
+    /**
+     * Como [observeAll], pero solo las que contienen [query] en el título o en el texto. Con un
+     * [query] vacío devuelve todas. No distingue mayúsculas, pero sí tildes ("canción" ≠ "cancion").
+     */
+    fun search(query: String): Flow<List<TranscriptionSummary>>
+
     /** Devuelve la transcripción con sus segmentos en orden, o null si no existe. */
     suspend fun getById(id: Long): Transcription?
 

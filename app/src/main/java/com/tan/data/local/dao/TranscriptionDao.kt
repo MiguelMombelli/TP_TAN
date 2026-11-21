@@ -19,6 +19,19 @@ abstract class TranscriptionDao {
     )
     abstract fun observeSummaries(): Flow<List<TranscriptionSummaryRow>>
 
+    /**
+     * Busca en el título y en el texto. [pattern] ya viene armado ("%palabra%", con los comodines
+     * del usuario escapados con \\); LIKE ignora mayúsculas en letras sin tilde.
+     */
+    @Query(
+        "SELECT id, title, createdAtMs, source, model, durationMs, " +
+            "substr(text, 1, 120) AS preview " +
+            "FROM transcriptions " +
+            "WHERE title LIKE :pattern ESCAPE '\\' OR text LIKE :pattern ESCAPE '\\' " +
+            "ORDER BY createdAtMs DESC, id DESC"
+    )
+    abstract fun searchSummaries(pattern: String): Flow<List<TranscriptionSummaryRow>>
+
     @Query("SELECT * FROM transcriptions WHERE id = :id")
     abstract suspend fun getTranscription(id: Long): TranscriptionEntity?
 

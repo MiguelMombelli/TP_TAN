@@ -3,6 +3,7 @@ package com.tan.presentation.history
 sealed interface HistoryUiState {
     data object Loading : HistoryUiState
     data object Empty : HistoryUiState
+    data object NoResults : HistoryUiState // hay transcripciones, pero ninguna coincide con la búsqueda
     data class Content(val items: List<HistoryItemUi>) : HistoryUiState
     data class Error(val message: String) : HistoryUiState
 }

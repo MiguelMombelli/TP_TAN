@@ -54,6 +54,16 @@ class TranscriptionDaoTest {
         assertEquals(listOf("Nueva", "Vieja"), repository.observeAll().first().map { it.title })
     }
 
+    // Prueba el LIKE ... ESCAPE de verdad (el DAO falso solo lo imita).
+    @Test fun search_usesRealSql_literalPercentAndCaseInsensitive() = runBlocking {
+        repository.save(sample("Clase de Física", 1))
+        repository.save(sample("100% listo", 2))
+        assertEquals(listOf("100% listo"), repository.search("%").first().map { it.title })
+        assertEquals(listOf("Clase de Física"), repository.search("clase").first().map { it.title })
+        assertEquals(2, repository.search("dos").first().size) // está en el texto de ambas
+        assertEquals(emptyList<Any>(), repository.search("zzz").first())
+    }
+
     @Test fun delete_cascadesToSegments() = runBlocking {
         val id = repository.save(sample("A", 1))
         repository.delete(id)
