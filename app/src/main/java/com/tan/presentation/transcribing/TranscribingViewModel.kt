@@ -9,6 +9,7 @@ import com.tan.domain.engine.ModelLoadException
 import com.tan.domain.engine.TranscriptionCancelledException
 import com.tan.domain.engine.TranscriptionEngine
 import com.tan.domain.engine.TranscriptionFailedException
+import com.tan.domain.engine.TranscriptionKeepAlive
 import com.tan.domain.model.Transcription
 import com.tan.domain.model.TranscriptionSource
 import com.tan.domain.repository.ModelRepository
@@ -40,6 +41,7 @@ class TranscribingViewModel @Inject constructor(
     private val models: ModelRepository,
     private val prefs: PreferencesRepository,
     private val repository: TranscriptionRepository,
+    private val keepAlive: TranscriptionKeepAlive,
 ) : ViewModel() {
 
     private val wavPath: String? = savedStateHandle[Routes.ARG_PATH]
@@ -87,6 +89,8 @@ class TranscribingViewModel @Inject constructor(
         val indeterminate = durationMs <= WHISPER_WINDOW_MS
         _state.value = TranscribingUiState.InProgress(0f, minutesLeft(0f, durationMs, 0L), indeterminate)
 
+        // Mientras se transcribe, la app queda protegida en segundo plano (servicio + WakeLock).
+        keepAlive.start()
         try {
             engine.loadModel(modelPath)
             val segments = engine.transcribe(wav.absolutePath, language, THREADS) { percent ->
@@ -125,6 +129,8 @@ class TranscribingViewModel @Inject constructor(
             fail("La transcripción falló. Intentá de nuevo.")
         } catch (e: Exception) {
             fail("Error en el proceso de transcripción")
+        } finally {
+            keepAlive.stop() // termine bien, mal o cancelado
         }
     }
 

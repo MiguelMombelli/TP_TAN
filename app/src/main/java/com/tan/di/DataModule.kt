@@ -3,6 +3,7 @@ package com.tan.di
 import android.content.Context
 import androidx.room.Room
 import com.tan.data.audio.ForegroundAudioRecorder
+import com.tan.data.engine.ForegroundTranscriptionKeepAlive
 import com.tan.data.engine.WhisperEngine
 import com.tan.data.local.TanDatabase
 import com.tan.data.local.dao.TranscriptionDao
@@ -11,6 +12,7 @@ import com.tan.data.repository.FileModelRepository
 import com.tan.data.repository.RoomTranscriptionRepository
 import com.tan.domain.audio.AudioRecorder
 import com.tan.domain.engine.TranscriptionEngine
+import com.tan.domain.engine.TranscriptionKeepAlive
 import com.tan.domain.repository.ModelRepository
 import com.tan.domain.repository.PreferencesRepository
 import com.tan.domain.repository.TranscriptionRepository
@@ -33,6 +35,10 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindTranscriptionEngine(impl: WhisperEngine): TranscriptionEngine
+
+    @Binds
+    @Singleton
+    abstract fun bindTranscriptionKeepAlive(impl: ForegroundTranscriptionKeepAlive): TranscriptionKeepAlive
 
     @Binds
     @Singleton
