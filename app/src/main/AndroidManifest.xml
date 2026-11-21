@@ -5,6 +5,14 @@
     <!-- Solo para descargar los modelos de Whisper; el audio y los textos nunca salen del celular. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Grabar: el micrófono, un servicio en primer plano de tipo micrófono (para seguir con la pantalla
+         apagada), su notificación (Android 13+) y un WakeLock para que el CPU no se duerma. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
     <application
         android:name=".TanApp"
         android:allowBackup="false"
@@ -27,6 +35,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".data.audio.RecordingService"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
