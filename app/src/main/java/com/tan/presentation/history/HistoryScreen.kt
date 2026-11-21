@@ -15,8 +15,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,23 +50,34 @@ fun HistoryScreen(
     viewModel: HistoryViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    HistoryContent(state, onBack, onItemClick)
+    val query by viewModel.query.collectAsStateWithLifecycle()
+    HistoryContent(state, onBack, onItemClick, query, viewModel::onQueryChange)
 }
 
 @Composable
 fun HistoryContent(
     state: HistoryUiState,
     onBack: () -> Unit,
-    onItemClick: (Long) -> Unit
+    onItemClick: (Long) -> Unit,
+    query: String = "",
+    onQueryChange: (String) -> Unit = {}
 ) {
     Scaffold(topBar = { TanTopBar("Historial", onBack) }) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+      Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+        // El buscador solo tiene sentido si hay transcripciones que buscar.
+        if (state is HistoryUiState.Content || state is HistoryUiState.NoResults) {
+            SearchField(query, onQueryChange)
+        }
+        Box(modifier = Modifier.fillMaxSize()) {
             when (state) {
                 HistoryUiState.Loading ->
                     CircularProgressIndicator(Modifier.align(Alignment.Center))
 
                 HistoryUiState.Empty ->
                     Text("Todavía no hay transcripciones", Modifier.align(Alignment.Center))
+
+                HistoryUiState.NoResults ->
+                    Text("No hay transcripciones que coincidan con la búsqueda", Modifier.align(Alignment.Center))
 
                 is HistoryUiState.Error ->
                     Text(
@@ -118,7 +135,27 @@ fun HistoryContent(
                     }
             }
         }
+      }
     }
+}
+
+@Composable
+private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        placeholder = { Text("Buscar en el historial") },
+        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(Icons.Default.Clear, contentDescription = "Borrar búsqueda")
+                }
+            }
+        },
+        singleLine = true,
+    )
 }
 
 @Preview(showBackground = true)
@@ -143,4 +180,10 @@ private fun HistoryContentPreview() {
 @Composable
 private fun HistoryErrorPreview() {
     TANTheme { HistoryContent(HistoryUiState.Error("No se pudo cargar"), {}, {}) }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun HistoryNoResultsPreview() {
+    TANTheme { HistoryContent(HistoryUiState.NoResults, {}, {}, query = "xyz") }
 }

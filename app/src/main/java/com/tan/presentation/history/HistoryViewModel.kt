@@ -2,13 +2,18 @@ package com.tan.presentation.history
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tan.domain.model.TranscriptionSummary
 import com.tan.domain.repository.TranscriptionRepository
 import com.tan.presentation.format.toHistoryState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
@@ -17,11 +22,30 @@ class HistoryViewModel @Inject constructor(
     repository: TranscriptionRepository
 ) : ViewModel() {
 
-    /** Lee de Room: se actualiza sola al guardar o borrar una transcripción. */
-    val state: StateFlow<HistoryUiState> = repository.observeAll()
-        .map { list -> list.toHistoryState() }
-        .catch { emit(HistoryUiState.Error("No se pudo cargar el historial")) }
+    private val _query = MutableStateFlow("")
+
+    /** Lo que hay escrito en el buscador; vive acá para que sobreviva a rotar la pantalla. */
+    val query: StateFlow<String> = _query.asStateFlow()
+
+    fun onQueryChange(text: String) {
+        _query.value = text
+    }
+
+    /**
+     * Lee de Room: se actualiza sola al guardar o borrar, y se vuelve a consultar con cada cambio
+     * del buscador. flatMapLatest descarta la consulta anterior si el usuario sigue escribiendo.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val state: StateFlow<HistoryUiState> = _query
+        .flatMapLatest { q ->
+            repository.search(q)
+                .map { list -> list.toState(q) }
+                .catch { emit(HistoryUiState.Error("No se pudo cargar el historial")) }
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HistoryUiState.Loading)
+
+    private fun List<TranscriptionSummary>.toState(query: String): HistoryUiState =
+        if (isEmpty() && query.isNotBlank()) HistoryUiState.NoResults else toHistoryState()
 }
 
 /** Datos de ejemplo solo para las vistas previas (@Preview). */
