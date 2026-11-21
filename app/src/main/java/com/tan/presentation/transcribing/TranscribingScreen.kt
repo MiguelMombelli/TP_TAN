@@ -22,7 +22,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,7 +49,7 @@ fun TranscribingScreen(
     onFinished: (Long) -> Unit,
     viewModel: TranscribingViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     // Cuando la transcripción termina y se guarda, se pasa a la pantalla de Resultado.
     LaunchedEffect(state) {
@@ -175,12 +175,12 @@ fun TranscribingContent(
     }
 
     if (state is TranscribingUiState.Error) {
-        ErrorDialog(onAccept = onErrorAccepted)
+        ErrorDialog(message = state.message, onAccept = onErrorAccepted)
     }
 }
 
 @Composable
-private fun ErrorDialog(onAccept: () -> Unit) {
+private fun ErrorDialog(message: String, onAccept: () -> Unit) {
     Dialog(onDismissRequest = {}) {
         Surface(shape = RoundedCornerShape(12.dp), color = Color.White) {
             Column(
@@ -189,7 +189,7 @@ private fun ErrorDialog(onAccept: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
                 Text(
-                    text = "Error en el proceso de transcripción",
+                    text = message,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = TanTexto,
