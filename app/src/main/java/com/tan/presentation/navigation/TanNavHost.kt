@@ -1,14 +1,16 @@
 package com.tan.presentation.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.tan.domain.model.TranscriptionSource
 import com.tan.presentation.detail.DetailScreen
 import com.tan.presentation.history.HistoryScreen
 import com.tan.presentation.home.HomeScreen
@@ -26,8 +28,16 @@ fun TanNavHost(startViewModel: StartViewModel = hiltViewModel()) {
     val navController = rememberNavController()
     val back: () -> Unit = { navController.popBackStack() }
 
+    // TEMPORAL (hasta T5 y T6): Grabar e Importar todavía no producen un audio real, así que
+    // transcriben el audio de muestra (en inglés) de las compilaciones debug.
+    val context = LocalContext.current
+    val transcribeSample: (TranscriptionSource) -> Unit = { source ->
+        val path = SampleAudio.copyToCache(context).orEmpty()
+        navController.navigate(Routes.transcribing(path, source, language = "en"))
+    }
+
     // Hasta saber si es la primera vez no se arma el NavHost (son unos milisegundos).
-    val startRoute by startViewModel.startRoute.collectAsState()
+    val startRoute by startViewModel.startRoute.collectAsStateWithLifecycle()
     val start = startRoute ?: return
 
     NavHost(navController = navController, startDestination = start) {
@@ -52,16 +62,23 @@ fun TanNavHost(startViewModel: StartViewModel = hiltViewModel()) {
         composable(Routes.RECORD) {
             RecordScreen(
                 onBack = { navController.popBackStack() },
-                onTranscribe = { navController.navigate(Routes.TRANSCRIBING) },
+                onTranscribe = { transcribeSample(TranscriptionSource.RECORDING) },
             )
         }
         composable(Routes.IMPORT) {
             LoadFileScreen(
                 onBack = back,
-                onContinue = { navController.navigate(Routes.TRANSCRIBING) },
+                onContinue = { transcribeSample(TranscriptionSource.FILE) },
             )
         }
-        composable(Routes.TRANSCRIBING) {
+        composable(
+            route = Routes.TRANSCRIBING,
+            arguments = listOf(
+                navArgument(Routes.ARG_PATH) { type = NavType.StringType; nullable = true; defaultValue = null },
+                navArgument(Routes.ARG_SOURCE) { type = NavType.StringType; defaultValue = TranscriptionSource.RECORDING.name },
+                navArgument(Routes.ARG_LANG) { type = NavType.StringType; defaultValue = "es" },
+            ),
+        ) {
             TranscribingScreen(
                 onCancel = back,
                 onErrorAccepted = back,
