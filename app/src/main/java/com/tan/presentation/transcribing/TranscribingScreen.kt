@@ -154,7 +154,7 @@ fun TranscribingContent(
             Spacer(Modifier.height(8.dp))
             Text(
                 text = "Quedan aproximadamente $minutesLeft ${if (minutesLeft == 1) "minuto" else "minutos"}. " +
-                        "Puedes salir de esta pantalla sin interrumpir el proceso.",
+                        "Podés apagar la pantalla o usar otras apps; si volvés atrás, se cancela.",
                 fontSize = 12.sp,
                 color = TanTexto.copy(alpha = 0.6f),
                 textAlign = TextAlign.Center,
