@@ -37,11 +37,18 @@ class TranscriptionService : Service() {
         val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "tan:transcribing")
             .apply { acquire(MAX_TRANSCRIPTION_MS) } // tope de seguridad: se libera solo
+        synchronized(lock) { running = true }
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_NOT_STICKY
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Si el trabajo ya terminó antes de que el servicio arrancara, se detiene ahora, después
+        // de haber llamado a startForeground. stopSelfResult no lo detiene si llegó un pedido nuevo.
+        synchronized(lock) { if (!wanted) stopSelfResult(startId) }
+        return START_NOT_STICKY
+    }
 
     override fun onDestroy() {
+        synchronized(lock) { running = false }
         wakeLock?.takeIf { it.isHeld }?.release()
         super.onDestroy()
     }
@@ -66,9 +73,16 @@ class TranscriptionService : Service() {
             .build()
     }
 
-    private companion object {
-        const val NOTIFICATION_ID = 2 // el 1 es el de la grabación
-        const val CHANNEL_ID = "transcribing"
-        const val MAX_TRANSCRIPTION_MS = 3 * 60 * 60 * 1000L
+    companion object {
+        // Estado compartido con ForegroundTranscriptionKeepAlive; siempre se lee y escribe con lock.
+        internal val lock = Any()
+        /** true mientras haya algún trabajo largo que necesite el servicio. */
+        internal var wanted = false
+        /** true desde que el servicio llamó a startForeground hasta que se destruye. */
+        internal var running = false
+
+        private const val NOTIFICATION_ID = 2 // el 1 es el de la grabación
+        private const val CHANNEL_ID = "transcribing"
+        private const val MAX_TRANSCRIPTION_MS = 3 * 60 * 60 * 1000L
     }
 }
