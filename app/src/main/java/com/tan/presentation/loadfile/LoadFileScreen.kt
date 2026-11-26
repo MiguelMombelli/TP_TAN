@@ -26,7 +26,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -46,6 +45,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.tan.R
 import com.tan.presentation.components.TanTopBar
+import com.tan.presentation.events.CollectEvents
 import com.tan.ui.theme.TANTheme
 import com.tan.ui.theme.TanNaranja
 import com.tan.ui.theme.TanRojo
@@ -64,15 +64,8 @@ fun LoadFileScreen(
         viewModel.onFilePicked(uri?.toString())
     }
 
-    // Con el audio ya convertido se pasa a Transcribiendo; después se limpia el estado para que,
-    // al volver atrás, no se repita la navegación.
-    LaunchedEffect(state) {
-        val current = state
-        if (current is LoadFileUiState.Converted) {
-            onContinue(current.wavPath)
-            viewModel.onNavigated()
-        }
-    }
+    // Con el audio ya convertido se pasa a Transcribiendo.
+    CollectEvents(viewModel.converted, onEvent = onContinue)
 
     LoadFileContent(
         state = state,

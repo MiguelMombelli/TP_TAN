@@ -21,8 +21,9 @@ class ForegroundTranscriptionKeepAlive @Inject constructor(
     private var holders = 0
 
     override fun start() {
-        synchronized(this) {
+        synchronized(TranscriptionService.lock) {
             if (holders++ == 0) {
+                TranscriptionService.wanted = true
                 // Si Android no deja arrancar el servicio, el trabajo sigue igual (solo que sin la
                 // protección en segundo plano): no vale la pena romper la pantalla por esto.
                 runCatching { ContextCompat.startForegroundService(context, intent) }
@@ -31,8 +32,14 @@ class ForegroundTranscriptionKeepAlive @Inject constructor(
     }
 
     override fun stop() {
-        synchronized(this) {
-            if (holders > 0 && --holders == 0) context.stopService(intent)
+        synchronized(TranscriptionService.lock) {
+            if (holders > 0 && --holders == 0) {
+                TranscriptionService.wanted = false
+                // Si el servicio todavía no arrancó (un trabajo que falla al instante, como una
+                // descarga en modo avión), detenerlo ahora hace que Android cierre la app. En ese
+                // caso no se lo detiene desde acá: se detiene solo en onStartCommand.
+                if (TranscriptionService.running) context.stopService(intent)
+            }
         }
     }
 }

@@ -37,7 +37,8 @@ class WhisperEngine @Inject constructor() : TranscriptionEngine {
                 Result.success(
                     WhisperNative
                         .nativeTranscribe(wavPath, threads, language, ProgressListener { onProgress(it) })
-                        .map { Segment(startMs = it.startMs, endMs = it.endMs, text = it.text) },
+                        .map { Segment(startMs = it.startMs, endMs = it.endMs, text = it.text) }
+                        .filterNot { isNonSpeech(it.text) },
                 )
             } catch (e: TranscriptionCancelledException) {
                 // Se devuelve como resultado y no se lanza: si lo lanzáramos, la tarea hija fallaría
@@ -61,3 +62,14 @@ class WhisperEngine @Inject constructor() : TranscriptionEngine {
     /** Para diagnóstico: versión de whisper.cpp y flags de CPU con los que se compiló. */
     fun systemInfo(): String = WhisperNative.nativeSystemInfo()
 }
+
+/**
+ * Con silencio o ruido, Whisper suele "inventar" anotaciones como [MÚSICA], (música) o ♪ en vez
+ * de devolver nada. Un segmento que solo tiene eso no es habla y se descarta; si no queda ninguno,
+ * la pantalla muestra "No se detectó voz".
+ */
+internal fun isNonSpeech(text: String): Boolean =
+    text.replace(NON_SPEECH_ANNOTATION, "").none { it.isLetterOrDigit() }
+
+/** Texto entre corchetes, paréntesis o asteriscos: [MÚSICA], (risas), *música*. */
+private val NON_SPEECH_ANNOTATION = Regex("""\[[^\]]*\]|\([^)]*\)|\*[^*]*\*""")

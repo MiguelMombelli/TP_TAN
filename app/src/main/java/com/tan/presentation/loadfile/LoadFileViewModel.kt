@@ -7,11 +7,15 @@ import com.tan.domain.audio.AudioImportException
 import com.tan.domain.audio.AudioImporter
 import com.tan.domain.audio.UnsupportedAudioException
 import com.tan.domain.engine.TranscriptionKeepAlive
+import com.tan.presentation.events.emitWhenObserved
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -19,8 +23,8 @@ import javax.inject.Inject
 
 /**
  * Importar: el usuario elige un archivo, se muestran sus datos y, al continuar, se convierte a un
- * WAV temporal 16 kHz mono (el formato del motor). Con el WAV listo la pantalla navega a
- * Transcribiendo, que es la misma que usa la grabación.
+ * WAV temporal 16 kHz mono (el formato del motor). Con el WAV listo se emite un evento para que
+ * la pantalla navegue a Transcribiendo, que es la misma que usa la grabación.
  */
 @HiltViewModel
 class LoadFileViewModel @Inject constructor(
@@ -30,6 +34,10 @@ class LoadFileViewModel @Inject constructor(
 
     private val _state = MutableStateFlow<LoadFileUiState>(LoadFileUiState.Empty)
     val state: StateFlow<LoadFileUiState> = _state.asStateFlow()
+
+    /** Evento de un solo uso: ruta del WAV ya convertido. */
+    private val _converted = MutableSharedFlow<String>()
+    val converted: SharedFlow<String> = _converted.asSharedFlow()
 
     private var uri: String? = null
     private var job: Job? = null
@@ -64,11 +72,11 @@ class LoadFileViewModel @Inject constructor(
             _state.value = LoadFileUiState.Converting(selected.fileName, selected.details, 0)
             // Una conversión larga también tiene que sobrevivir a la pantalla apagada.
             keepAlive.start()
+            var wavPath: String? = null
             try {
-                val wavPath = importer.convertToWav(uri) { percent ->
+                wavPath = importer.convertToWav(uri) { percent ->
                     _state.value = LoadFileUiState.Converting(selected.fileName, selected.details, percent)
                 }
-                _state.value = LoadFileUiState.Converted(wavPath)
             } catch (e: CancellationException) {
                 throw e // salir de la pantalla o cancelar: el importador ya borró el WAV parcial
             } catch (e: UnsupportedAudioException) {
@@ -78,6 +86,13 @@ class LoadFileViewModel @Inject constructor(
             } finally {
                 keepAlive.stop()
             }
+            // Fuera del try, para no retener el servicio mientras se espera a la pantalla.
+            wavPath?.let { path ->
+                _converted.emitWhenObserved(path)
+                // Ya se entregó: se limpia para que al volver atrás la pantalla arranque de cero.
+                this@LoadFileViewModel.uri = null
+                _state.value = LoadFileUiState.Empty
+            }
         }
     }
 
@@ -86,12 +101,6 @@ class LoadFileViewModel @Inject constructor(
         val converting = _state.value as? LoadFileUiState.Converting ?: return
         job?.cancel()
         _state.value = LoadFileUiState.Selected(converting.fileName, converting.details)
-    }
-
-    /** La pantalla ya navegó a Transcribiendo: se limpia para que al volver atrás no navegue de nuevo. */
-    fun onNavigated() {
-        uri = null
-        _state.value = LoadFileUiState.Empty
     }
 
     private fun describe(info: AudioFileInfo): String {

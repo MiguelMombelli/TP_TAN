@@ -15,13 +15,17 @@ import com.tan.domain.model.TranscriptionSource
 import com.tan.domain.repository.ModelRepository
 import com.tan.domain.repository.PreferencesRepository
 import com.tan.domain.repository.TranscriptionRepository
+import com.tan.presentation.events.emitWhenObserved
 import com.tan.presentation.format.defaultTitle
 import com.tan.presentation.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -56,6 +60,10 @@ class TranscribingViewModel @Inject constructor(
     )
     val state: StateFlow<TranscribingUiState> = _state.asStateFlow()
 
+    /** Evento de un solo uso: id de la transcripción recién guardada. */
+    private val _finished = MutableSharedFlow<Long>()
+    val finished: SharedFlow<Long> = _finished.asSharedFlow()
+
     private var job: Job? = null
 
     init {
@@ -89,6 +97,7 @@ class TranscribingViewModel @Inject constructor(
         val indeterminate = durationMs <= WHISPER_WINDOW_MS
         _state.value = TranscribingUiState.InProgress(0f, minutesLeft(0f, durationMs, 0L), indeterminate)
 
+        var savedId: Long? = null
         // Mientras se transcribe, la app queda protegida en segundo plano (servicio + WakeLock).
         keepAlive.start()
         try {
@@ -105,7 +114,7 @@ class TranscribingViewModel @Inject constructor(
                 return
             }
             val now = System.currentTimeMillis()
-            val id = repository.save(
+            savedId = repository.save(
                 Transcription(
                     title = defaultTitle(source, now),
                     createdAtMs = now,
@@ -116,7 +125,7 @@ class TranscribingViewModel @Inject constructor(
                 )
             )
             wav.delete() // el audio no se guarda: solo el texto
-            _state.value = TranscribingUiState.Done(id)
+            _state.value = TranscribingUiState.Done
         } catch (e: CancellationException) {
             throw e // cancelación de la corrutina: no es un error, no se muestra nada
         } catch (e: TranscriptionCancelledException) {
@@ -132,6 +141,10 @@ class TranscribingViewModel @Inject constructor(
         } finally {
             keepAlive.stop() // termine bien, mal o cancelado
         }
+
+        // Fuera del try: el aviso puede esperar a que la pantalla vuelva a estar visible, y esa
+        // espera no tiene que dejar activos el servicio ni el WakeLock.
+        savedId?.let { _finished.emitWhenObserved(it) }
     }
 
     /**
