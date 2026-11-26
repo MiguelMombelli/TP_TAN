@@ -1,21 +1,46 @@
 package com.tan.presentation.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.getValue
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.tan.presentation.components.PlaceholderScreen
+import androidx.navigation.navArgument
+import com.tan.domain.model.TranscriptionSource
+import com.tan.presentation.detail.DetailScreen
 import com.tan.presentation.history.HistoryScreen
 import com.tan.presentation.home.HomeScreen
+import com.tan.presentation.loadfile.LoadFileScreen
 import com.tan.presentation.models.ModelsScreen
+import com.tan.presentation.record.RecordScreen
+import com.tan.presentation.result.ResultScreen
+import com.tan.presentation.settings.SettingsScreen
+import com.tan.presentation.start.StartViewModel
+import com.tan.presentation.transcribing.TranscribingScreen
+import com.tan.presentation.welcome.WelcomeScreen
 
 @Composable
-fun TanNavHost() {
+fun TanNavHost(startViewModel: StartViewModel = hiltViewModel()) {
     val navController = rememberNavController()
     val back: () -> Unit = { navController.popBackStack() }
 
-    NavHost(navController = navController, startDestination = Routes.HOME) {
-        composable(Routes.WELCOME) { PlaceholderScreen("Bienvenida", back) }
+    // Hasta saber si es la primera vez no se arma el NavHost (son unos milisegundos).
+    val startRoute by startViewModel.startRoute.collectAsStateWithLifecycle()
+    val start = startRoute ?: return
+
+    NavHost(navController = navController, startDestination = start) {
+        composable(Routes.WELCOME) {
+            WelcomeScreen(
+                onChooseModel = {
+                    // Bienvenida -> Inicio -> Modelos: al volver atrás desde Modelos se cae en Inicio.
+                    navController.navigate(Routes.HOME) { popUpTo(Routes.WELCOME) { inclusive = true } }
+                    navController.navigate(Routes.MODELS)
+                },
+            )
+        }
         composable(Routes.MODELS) { ModelsScreen(onBack = back) }
         composable(Routes.HOME) {
             HomeScreen(
@@ -25,11 +50,70 @@ fun TanNavHost() {
                 onSettings = { navController.navigate(Routes.SETTINGS) }
             )
         }
-        composable(Routes.RECORD) { PlaceholderScreen("Grabar audio", back) }
-        composable(Routes.IMPORT) { PlaceholderScreen("Cargar archivo", back) }
-        composable(Routes.TRANSCRIBING) { PlaceholderScreen("Transcribiendo", back) }
-        composable(Routes.HISTORY) { HistoryScreen(onBack = back) }
-        composable(Routes.DETAIL) { PlaceholderScreen("Detalle", back) }
-        composable(Routes.SETTINGS) { PlaceholderScreen("Configuración", back) }
+        composable(Routes.RECORD) {
+            RecordScreen(
+                onBack = { navController.popBackStack() },
+                onTranscribe = { wavPath ->
+                    navController.navigate(Routes.transcribing(wavPath, TranscriptionSource.RECORDING))
+                },
+            )
+        }
+        composable(Routes.IMPORT) {
+            LoadFileScreen(
+                onBack = back,
+                onContinue = { wavPath ->
+                    navController.navigate(Routes.transcribing(wavPath, TranscriptionSource.FILE))
+                },
+            )
+        }
+        composable(
+            route = Routes.TRANSCRIBING,
+            arguments = listOf(
+                navArgument(Routes.ARG_PATH) { type = NavType.StringType; nullable = true; defaultValue = null },
+                navArgument(Routes.ARG_SOURCE) { type = NavType.StringType; defaultValue = TranscriptionSource.RECORDING.name },
+                navArgument(Routes.ARG_LANG) { type = NavType.StringType; defaultValue = "es" },
+            ),
+        ) {
+            TranscribingScreen(
+                onCancel = back,
+                onErrorAccepted = back,
+                onChooseModel = {
+                    back()
+                    navController.navigate(Routes.MODELS)
+                },
+                onFinished = { id ->
+                    navController.navigate(Routes.result(id)) { popUpTo(Routes.HOME) }
+                },
+            )
+        }
+        composable(
+            route = Routes.RESULT,
+            arguments = listOf(navArgument(Routes.ARG_ID) { type = NavType.LongType }),
+        ) {
+            ResultScreen(
+                onBack = { navController.popBackStack(Routes.HOME, inclusive = false) },
+                onRecordAgain = {
+                    navController.navigate(Routes.RECORD) { popUpTo(Routes.HOME) }
+                },
+            )
+        }
+        composable(Routes.HISTORY) {
+            HistoryScreen(
+                onBack = back,
+                onItemClick = { id -> navController.navigate(Routes.detail(id)) },
+            )
+        }
+        composable(
+            route = Routes.DETAIL,
+            arguments = listOf(navArgument(Routes.ARG_ID) { type = NavType.LongType }),
+        ) {
+            DetailScreen(onBack = back)
+        }
+        composable(Routes.SETTINGS) {
+            SettingsScreen(
+                onBack = back,
+                onManageModels = { navController.navigate(Routes.MODELS) },
+            )
+        }
     }
 }

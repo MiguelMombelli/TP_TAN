@@ -8,4 +8,6 @@ val TanTexto = Color(0xFF6F7079)
 val TanFondo = Color(0xFFF2FBFA)
 val TanTarjeta = Color(0xFFEAF4F1)        // fondo de tarjeta de modelo
 val TanTarjetaActiva = Color(0xFFF2FBF9)  // tarjeta del modelo en uso
-val TanRojo = Color(0xFFE53935)           // banner de error y ícono eliminar
+val TanRojo = Color(0xFFE53935)
+val TanVerde = Color(0xFF34C759)      // grabación guardada
+val TanGrabando = Color(0xFFFF2020)   // círculo y texto de "Grabando…"// banner de error y ícono eliminar

@@ -10,3 +10,9 @@
 #-keepclassmembers class fqcn.of.javascript.interface.for.webview {
 #   public *;
 #}
+
+# Clases que el código C++ (JNI) busca por nombre y firma: no renombrar ni quitar.
+-keep class com.tan.data.engine.NativeSegment { <init>(long, long, java.lang.String); }
+-keep interface com.tan.data.engine.ProgressListener { void onProgress(int); }
+-keep class com.tan.domain.engine.*Exception { <init>(java.lang.String); }
+-keepclasseswithmembernames class * { native <methods>; }
