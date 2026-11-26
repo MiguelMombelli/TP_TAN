@@ -19,6 +19,6 @@ sealed interface TranscribingUiState {
         val needsModel: Boolean = false,
     ) : TranscribingUiState
 
-    /** La transcripción terminó y quedó guardada con este id. */
-    data class Done(val transcriptionId: Long) : TranscribingUiState
+    /** La transcripción terminó y quedó guardada. El aviso para navegar va aparte, como evento. */
+    data object Done : TranscribingUiState
 }

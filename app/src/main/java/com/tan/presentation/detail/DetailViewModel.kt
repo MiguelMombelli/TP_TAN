@@ -5,13 +5,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tan.domain.model.Segment
 import com.tan.domain.repository.TranscriptionRepository
+import com.tan.presentation.events.emitWhenObserved
 import com.tan.presentation.format.toDetailUi
 import com.tan.presentation.navigation.Routes
 import com.tan.presentation.result.fakeSegments
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
@@ -25,6 +29,10 @@ class DetailViewModel @Inject constructor(
 
     private val _state = MutableStateFlow<DetailUiState>(DetailUiState.Loading)
     val state: StateFlow<DetailUiState> = _state.asStateFlow()
+
+    /** Evento de un solo uso: la transcripción ya se borró y hay que volver atrás. */
+    private val _deleted = MutableSharedFlow<Unit>()
+    val deleted: SharedFlow<Unit> = _deleted.asSharedFlow()
 
     init {
         viewModelScope.launch {
@@ -42,14 +50,15 @@ class DetailViewModel @Inject constructor(
     }
 
     /** Borra la transcripción y, recién cuando terminó, avisa para volver atrás. */
-    fun onDelete(onDone: () -> Unit) {
+    fun onDelete() {
         viewModelScope.launch {
             try {
                 repository.delete(id)
-                onDone()
             } catch (e: Exception) {
                 _state.value = DetailUiState.Error("No se pudo borrar la transcripción")
+                return@launch
             }
+            _deleted.emitWhenObserved(Unit)
         }
     }
 }

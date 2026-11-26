@@ -21,7 +21,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -38,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.tan.presentation.components.TanTopBar
+import com.tan.presentation.events.CollectEvents
 import com.tan.ui.theme.TANTheme
 import com.tan.ui.theme.TanNaranja
 import com.tan.ui.theme.TanTarjeta
@@ -55,10 +55,7 @@ fun TranscribingScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     // Cuando la transcripción termina y se guarda, se pasa a la pantalla de Resultado.
-    LaunchedEffect(state) {
-        val current = state
-        if (current is TranscribingUiState.Done) onFinished(current.transcriptionId)
-    }
+    CollectEvents(viewModel.finished, onEvent = onFinished)
 
     TranscribingContent(
         state = state,

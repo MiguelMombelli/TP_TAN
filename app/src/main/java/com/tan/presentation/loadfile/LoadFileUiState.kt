@@ -11,7 +11,6 @@ sealed interface LoadFileUiState {
         val details: String,
         val percent: Int,
     ) : LoadFileUiState
-    data class Converted(val wavPath: String) : LoadFileUiState // listo: la pantalla navega a Transcribiendo
     data object UnsupportedFormat : LoadFileUiState            // no es audio que Android sepa decodificar
     data class Failed(val message: String) : LoadFileUiState   // no se pudo leer o convertir
 }

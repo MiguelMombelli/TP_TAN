@@ -35,6 +35,7 @@ import com.tan.presentation.components.TanButtonStyle
 import com.tan.presentation.components.TanChip
 import com.tan.presentation.components.TanTopBar
 import com.tan.presentation.components.TranscriptionTextCard
+import com.tan.presentation.events.CollectEvents
 import com.tan.share.TranscriptSharer
 import com.tan.ui.theme.TANTheme
 import com.tan.ui.theme.TanNaranja
@@ -55,12 +56,15 @@ fun DetailScreen(
         TranscriptSharer.share(context, detail.title, detail.segments, format)
     }
 
+    // Cuando el borrado terminó se vuelve a la pantalla anterior.
+    CollectEvents(viewModel.deleted) { onBack() }
+
     DetailContent(
         state = state,
         onBack = onBack,
         onShareTxt = { share(ExportFormat.TXT) },
         onShareSrt = { share(ExportFormat.SRT) },
-        onDelete = { viewModel.onDelete(onDone = onBack) }
+        onDelete = viewModel::onDelete
     )
 }
 
